@@ -1,4 +1,5 @@
 require("dotenv").config();
+console.log("DB HOST:", process.env.DB_HOST);
 console.log("Bucket Name:", process.env.S3_BUCKET_NAME);  // Debugging step
 const express = require("express");
 const cors = require("cors");
