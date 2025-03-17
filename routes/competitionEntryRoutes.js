@@ -4,8 +4,6 @@ const CompetitionEntryController = require("../controllers/competitionEntryContr
 
 console.log("✅ CompetitionEntryController:", CompetitionEntryController); // <-- Add this for debugging
 
-const multer = require("multer");
-const multerS3 = require("multer-s3");
 const AWS = require("aws-sdk");
 require("dotenv").config();
 
@@ -24,9 +22,6 @@ const s3 = new AWS.S3();
 router.get("/get-upload-url", CompetitionEntryController.getUploadURL);
 
 router.post("/update-image", CompetitionEntryController.updateImage);
-
-// ✅ Upload Image & Track Match Type (Legacy Upload - Not used in StepTwo)
-router.post("/upload-image", upload.single("image"), CompetitionEntryController.uploadImage);
 
 // ✅ Confirm Payment
 router.post("/confirm-payment", CompetitionEntryController.confirmPayment);
