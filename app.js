@@ -24,9 +24,11 @@ const app = express();
 
 
 // ✅ Middleware
-app.use(cors({ 
-  origin: ["http://localhost:5173", process.env.CLIENT_URL], // ✅ Allow multiple origins
+app.use(cors({
+  origin: "*",
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
+  allowedHeaders: "Origin, X-Requested-With, Content-Type, Accept, Authorization"
 }));
 
 // ✅ Increase Payload Size Limit to Prevent 413 Error
