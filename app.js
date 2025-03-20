@@ -2,7 +2,6 @@ require("dotenv").config();
 console.log("DB HOST:", process.env.DB_HOST);
 console.log("Bucket Name:", process.env.S3_BUCKET_NAME);  // Debugging step
 const express = require("express");
-const cors = require("cors");
 const sequelize = require("./config/db");
 const path = require("path");
 require("./models"); // ✅ Ensures all models & associations are loaded
@@ -29,14 +28,20 @@ app.get('/health', (req, res) => {
 
 
 // ✅ Middleware
+const cors = require("cors");
+
+// ✅ Define CORS options
 const corsOptions = {
-  origin: ["https://www.playpikme.com"], // ✅ Only allow your frontend
+  origin: "https://www.playpikme.com", // ✅ Allow only this frontend
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true, // ✅ Allows cookies/auth headers
-  allowedHeaders: "Origin, X-Requested-With, Content-Type, Accept, Authorization"
 };
 
+// ✅ Apply CORS middleware globally
 app.use(cors(corsOptions));
+
+// ✅ Handle Preflight (OPTIONS) requests explicitly
+app.options("*", cors(corsOptions));
 
 
 // ✅ Increase Payload Size Limit to Prevent 413 Error
