@@ -23,6 +23,11 @@ const adminCompetitionRoutes = require("./routes/adminCompetitionRoutes");
 const app = express();
 
 
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
+
 // ✅ Middleware
 app.use(cors({
   origin: "*",
@@ -48,10 +53,6 @@ app.use("/api/winners", WinnersRoutes);
 app.use("/api/leaderboard", LeaderboardRoutes);
 console.log("✅ Registering Admin Competitions Route...");
 app.use("/api/competitions", adminCompetitionRoutes);
-
-app.get('/health', (req, res) => {
-  res.status(200).send('OK');
-});
 
 
 // ✅ Default Route
