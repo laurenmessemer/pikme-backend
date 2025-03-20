@@ -30,11 +30,12 @@ app.get('/health', (req, res) => {
 
 // ✅ Middleware
 app.use(cors({
-  origin: "*",
+  origin: "https://www.playpikme.com", // Allow your frontend domain
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
   allowedHeaders: "Origin, X-Requested-With, Content-Type, Accept, Authorization"
 }));
+
 
 // ✅ Increase Payload Size Limit to Prevent 413 Error
 app.use(express.json({ limit: "20mb" })); 
