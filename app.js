@@ -30,18 +30,30 @@ app.get('/health', (req, res) => {
 // ✅ Middleware
 const cors = require("cors");
 
-// ✅ Define CORS options
 const corsOptions = {
-  origin: "https://www.playpikme.com", // ✅ Allow only this frontend
+  origin: "https://www.playpikme.com", // ✅ Allow frontend domain
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  credentials: true, // ✅ Allows cookies/auth headers
+  credentials: true, // ✅ Important for authentication
+  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"]
 };
 
-// ✅ Apply CORS middleware globally
+// ✅ Use CORS Middleware
 app.use(cors(corsOptions));
 
-// ✅ Handle Preflight (OPTIONS) requests explicitly
-app.options("*", cors(corsOptions));
+// ✅ Manually set CORS headers (for extra protection)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://www.playpikme.com");
+  res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+  
+  // ✅ Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
 
 
 // ✅ Increase Payload Size Limit to Prevent 413 Error
