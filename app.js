@@ -49,6 +49,10 @@ app.use("/api/leaderboard", LeaderboardRoutes);
 console.log("✅ Registering Admin Competitions Route...");
 app.use("/api/competitions", adminCompetitionRoutes);
 
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 
 // ✅ Default Route
 app.get("/", (req, res) => {
