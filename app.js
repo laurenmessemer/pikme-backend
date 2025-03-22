@@ -19,6 +19,7 @@ const LeaderboardRoutes = require("./routes/leaderboardRoutes");
 const WinnersRoutes = require("./routes/winnersRoutes");
 const adminCompetitionRoutes = require("./routes/adminCompetitionRoutes");
 
+
 const app = express();
 
 
@@ -30,31 +31,53 @@ app.get('/health', (req, res) => {
 // ✅ Middleware
 const cors = require("cors");
 
+const allowedOrigins = [
+  "https://www.playpikme.com",
+  "http://localhost:5173" // 👈 Add this
+];
+
 const corsOptions = {
-  origin: "https://www.playpikme.com", // ✅ Allow frontend domain
+  origin: function (origin, callback) {
+    // allow requests with no origin (e.g., curl or mobile apps)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  credentials: true, // ✅ Important for authentication
+  credentials: true,
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"]
 };
+
+// const corsOptions = {
+//   origin: "https://www.playpikme.com", // ✅ Allow frontend domain
+//   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+//   credentials: true, // ✅ Important for authentication
+//   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"]
+// };
 
 // ✅ Use CORS Middleware
 app.use(cors(corsOptions));
 
 // ✅ Manually set CORS headers (for extra protection)
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://www.playpikme.com");
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+
   res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
   res.header("Access-Control-Allow-Credentials", "true");
-  
-  // ✅ Handle preflight requests
+
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
   }
-  
+
   next();
 });
-
 
 // ✅ Increase Payload Size Limit to Prevent 413 Error
 app.use(express.json({ limit: "20mb" })); 
@@ -73,7 +96,7 @@ app.use("/api/winners", WinnersRoutes);
 app.use("/api/leaderboard", LeaderboardRoutes);
 console.log("✅ Registering Admin Competitions Route...");
 app.use("/api/competitions", adminCompetitionRoutes);
-
+app.use("/webhook", webhookRoutes);
 
 // ✅ Default Route
 app.get("/", (req, res) => {

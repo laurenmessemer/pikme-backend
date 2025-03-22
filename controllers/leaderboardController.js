@@ -184,3 +184,51 @@ exports.getLiveContests = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error while fetching live contests." });
     }
 };
+
+exports.getOpponentInfo = async (req, res) => {
+    try {
+      const { userId, competitionId } = req.query;
+  
+      if (!userId || !competitionId) {
+        return res.status(400).json({ error: "userId and competitionId are required." });
+      }
+  
+      const competition = await Competition.findByPk(competitionId, {
+        include: [
+          { model: User, as: "User1", attributes: ["id", "username"] },
+          { model: User, as: "User2", attributes: ["id", "username"] }
+        ]
+      });
+  
+      if (!competition) {
+        return res.status(404).json({ error: "Competition not found." });
+      }
+  
+      let opponent = null;
+  
+      if (String(competition.user1_id) === String(userId)) {
+        if (!competition.user2_id) return res.status(200).json({ opponent: null });
+        opponent = {
+          id: competition.User2?.id,
+          username: competition.User2?.username,
+          imageUrl: competition.user2_image,
+          votes: competition.votes_user2
+        };
+      } else if (String(competition.user2_id) === String(userId)) {
+        opponent = {
+          id: competition.User1?.id,
+          username: competition.User1?.username,
+          imageUrl: competition.user1_image,
+          votes: competition.votes_user1
+        };
+      } else {
+        return res.status(403).json({ error: "User is not a participant in this competition." });
+      }
+  
+      res.status(200).json({ opponent });
+  
+    } catch (error) {
+      console.error("❌ Error fetching opponent info:", error);
+      res.status(500).json({ error: "Internal server error." });
+    }
+  };

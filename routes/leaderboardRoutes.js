@@ -11,4 +11,8 @@ router.get("/winners", leaderboardController.getWinners);
 // ✅ Route to get user submissions
 router.get("/mysubmissions", leaderboardController.getUserSubmissions);
 
+// ✅ Get opponent info for a specific competition
+router.get("/opponent", leaderboardController.getOpponentInfo);
+
+
 module.exports = router;
