@@ -18,6 +18,7 @@ const voteRoutes = require("./routes/voteRoutes");
 const LeaderboardRoutes = require("./routes/leaderboardRoutes");
 const WinnersRoutes = require("./routes/winnersRoutes");
 const adminCompetitionRoutes = require("./routes/adminCompetitionRoutes");
+const webhookRoutes = require("./webhook"); // or "./routes/webhook" if it's inside /routes
 
 
 const app = express();
@@ -73,7 +74,7 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Credentials", "true");
 
   if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
+    return res.sendStatus(200).end;
   }
 
   next();

@@ -1,17 +1,15 @@
-// webhook.js
 const express = require("express");
 const crypto = require("crypto");
 require("dotenv").config();
 
-const app = express();
-app.use(express.json({ type: "*/*" }));
+const router = express.Router(); // ←✅ Use router instead of app
 
-const PORT = 4000;
+router.use(express.json({ type: "*/*" }));
 
-app.post("/webhook", (req, res) => {
-  const githubSignature = req.headers["x-hub-signature-256"];
-  const hmac = crypto.createHmac("sha256", process.env.GITHUB_WEBHOOK_SECRET);
+router.post("/", (req, res) => {
+  const hmac = crypto.createHmac("sha256", process.env.WEBHOOK_SECRET);
   const digest = `sha256=${hmac.update(JSON.stringify(req.body)).digest("hex")}`;
+  const githubSignature = req.headers["x-hub-signature-256"];
 
   if (githubSignature !== digest) {
     console.log("❌ Webhook signature mismatch");
@@ -19,9 +17,9 @@ app.post("/webhook", (req, res) => {
   }
 
   console.log("✅ Webhook received!");
-  // Auto-pull and restart backend:
+
   const { exec } = require("child_process");
-  exec("cd ~/pikme-backend && git pull && pm2 restart backend", (err, stdout, stderr) => {
+  exec("cd ~/pikme-backend && git pull && pm2 restart pikme-backend", (err, stdout, stderr) => {
     if (err) {
       console.error("❌ Deployment error:", err);
       return res.status(500).send("Deployment error");
@@ -31,6 +29,4 @@ app.post("/webhook", (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🔗 Webhook server running on http://localhost:${PORT}`);
-});
+module.exports = router; // ✅ Export the router
