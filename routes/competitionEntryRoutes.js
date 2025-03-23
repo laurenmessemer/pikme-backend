@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const CompetitionEntryController = require("../controllers/competitionEntryController");
 
-console.log("✅ CompetitionEntryController:", CompetitionEntryController); // <-- Add this for debugging
 
 const AWS = require("aws-sdk");
 require("dotenv").config();
@@ -35,6 +34,5 @@ router.get("/status", CompetitionEntryController.getCompetitionStatus);
 // ✅ Confirm Submission (Marks Competition as Complete)
 router.post("/confirm", CompetitionEntryController.confirmSubmission);
 
-console.log("✅ Competition Entry Routes Initialized.");
 
 module.exports = router;

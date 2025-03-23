@@ -52,13 +52,6 @@ const corsOptions = {
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"]
 };
 
-// const corsOptions = {
-//   origin: "https://www.playpikme.com", // ✅ Allow frontend domain
-//   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-//   credentials: true, // ✅ Important for authentication
-//   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"]
-// };
-
 // ✅ Use CORS Middleware
 app.use(cors(corsOptions));
 
