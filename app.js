@@ -124,10 +124,9 @@ sequelize
   })
   .then(() => {
     console.log("✅ Database synced successfully");
-    const PORT = process.env.PORT || 5004;
-    
-    
-    app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on http://0.0.0.0:${PORT}`));
 
+    const PORT = process.env.PORT || 5004;
+    app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on http://0.0.0.0:${PORT}`));
+    
   })
   .catch((err) => console.error("❌ Database sync error:", err));
