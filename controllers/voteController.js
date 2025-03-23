@@ -1,31 +1,49 @@
-const { Competition } = require("../models");
+const { Competition, Contest, Theme } = require("../models");
 const { Op, Sequelize } = require("sequelize");
 
 // ✅ Fetch active competitions where both images exist
 exports.getVotingEntries = async (req, res) => {
-    try {
-        const competitions = await Competition.findAll({
-            where: {
-                status: "Active", // Only active competitions
-                user1_image: { [Op.not]: null },
-                user2_image: { [Op.not]: null },
-            },
-            order: [Sequelize.literal("RANDOM()")], // Shuffle competitions
-            attributes: ["id", "user1_image", "user2_image"], // Select only needed fields
-            limit: 5, // Load 5 at a time for efficiency
-        });
-
-        console.log("✅ Fetched competitions for voting:", competitions);
-
-        if (competitions.length === 0) {
-            return res.status(200).json({ competitions: [], message: "No more competitions left to vote on." });
+  try {
+    const competitions = await Competition.findAll({
+      where: {
+        status: "Active",
+        user1_image: { [Op.not]: null },
+        user2_image: { [Op.not]: null },
+      },
+      include: [
+        {
+          model: Contest,
+          where: { status: "Live" },
+          include: [{ model: Theme, as: "Theme" }]
         }
+      ],
+      order: [Sequelize.literal("RANDOM()")],
+      limit: 5
+    });
 
-        res.status(200).json({ competitions });
-    } catch (error) {
-        console.error("❌ Error fetching competitions:", error);
-        res.status(500).json({ message: "Error fetching competitions", error: error.message });
+    console.log("✅ Fetched voting competitions:", competitions);
+
+    if (!competitions || competitions.length === 0) {
+      return res.status(200).json({ competitions: [], message: "No more competitions left to vote on." });
     }
+
+    const formatted = competitions.map(comp => ({
+      id: comp.id,
+      user1_image: comp.user1_image,
+      user2_image: comp.user2_image,
+      contestId: comp.Contest.id,
+      entry_fee: comp.Contest.entry_fee,
+      prize_pool: parseFloat(comp.Contest.prize_pool),
+      theme_name: comp.Contest.Theme?.name || "Theme",
+      theme_description: comp.Contest.Theme?.description || "",
+      cover_image: comp.Contest.Theme?.cover_image_url || "",
+    }));
+
+    res.status(200).json({ competitions: formatted });
+  } catch (error) {
+    console.error("❌ Error fetching competitions:", error);
+    res.status(500).json({ message: "Error fetching competitions", error: error.message });
+  }
 };
 
 // ✅ Cast vote
