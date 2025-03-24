@@ -1,9 +1,6 @@
 const { Wallet } = require("../models"); // ✅ Import Wallet model
 
 // ✅ Fetch Wallet Data Without Authentication
-const { Wallet } = require("../models"); // ✅ Import Wallet model
-
-// ✅ Fetch Wallet Data Without Authentication
 const getWallet = async (req, res) => {
   try {
     const userId = req.query.user_id;
