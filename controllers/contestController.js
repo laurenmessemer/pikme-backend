@@ -17,31 +17,41 @@ const getAllContests = async (req, res) => {
 // ✅ Fetch a single contest by ID
 const getContestById = async (req, res) => {
   try {
+    console.log("📥 Incoming request to getContestById");
+    console.log("🧾 req.params:", req.params);
+
     const { id } = req.params;
+
+    if (!id || isNaN(id)) {
+      console.warn("⚠️ Invalid or missing contest ID:", id);
+      return res.status(400).json({ error: "Invalid contest ID" });
+    }
+
     const contest = await Contest.findByPk(id, {
       include: [
-        { 
-          model: User, 
-          attributes: ["username", "email"] 
-        },
-        { 
-          model: Theme, 
-          as: "Theme", // ✅ Ensure this alias matches the model association
-          attributes: ["name", "description", "cover_image_url"] 
+        { model: User, attributes: ["username", "email"] },
+        {
+          model: Theme,
+          as: "Theme",
+          attributes: ["name", "description", "cover_image_url"]
         }
       ],
     });
 
     if (!contest) {
+      console.warn("⚠️ No contest found for ID:", id);
       return res.status(404).json({ error: "Contest not found" });
     }
 
+    console.log("✅ Contest found:", contest.id);
     res.json(contest);
+
   } catch (error) {
-    console.error("❌ Error fetching contest:", error);
+    console.error("❌ Error fetching contest by ID:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 
 // ✅ Fetch only live contests
