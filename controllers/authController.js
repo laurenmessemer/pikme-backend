@@ -43,15 +43,14 @@ exports.registerUser = async (req, res) => {
       referred_by_id: referredByUser ? referredByUser.id : null,
     });
 
-    // ✅ Generate referral code for new user (e.g., PIK000123)
-    const referralCodeForNewUser = `PIK${String(newUser.id).padStart(6, "0")}`;
-    newUser.referral_code = referralCodeForNewUser;
+    // ✅ Generate unique referral code (e.g., PIK000123)
+    newUser.referral_code = `PIK${String(newUser.id).padStart(6, "0")}`;
 
-    // ✅ Default: referral bonus not yet awarded
+    // ✅ Track whether bonus has been awarded (null if no referral)
     newUser.referral_bonus_awarded = referredByUser ? false : null;
     await newUser.save();
 
-    // ✅ Build transaction history
+    // ✅ Build transaction history for new user's wallet
     const transactionHistory = [
       {
         type: "Joining Bonus",
@@ -61,7 +60,9 @@ exports.registerUser = async (req, res) => {
       },
     ];
 
-    // ✅ Referral bonus (if applicable)
+    let startingBalance = 10;
+
+    // ✅ If referred, add referral bonus to both users
     if (referredByUser) {
       transactionHistory.push({
         type: "Referral Bonus",
@@ -69,6 +70,9 @@ exports.registerUser = async (req, res) => {
         amount: 10,
         timestamp: new Date(),
       });
+
+      // ⬆️ New user gets 10 extra tokens
+      startingBalance += 10;
 
       // ✅ Update referring user's wallet
       const refWallet = await Wallet.findOne({ where: { user_id: referredByUser.id } });
@@ -86,30 +90,36 @@ exports.registerUser = async (req, res) => {
         await refWallet.save();
       }
 
-      // ✅ Update referral bonus flag
+      // ✅ Mark bonus as awarded for tracking
       newUser.referral_bonus_awarded = true;
       await newUser.save();
     }
 
-    // ✅ Create wallet for new user
-    const startingBalance = referredByUser ? 20 : 10;
+    // ✅ Create wallet for the new user
     await Wallet.create({
       user_id: newUser.id,
       token_balance: startingBalance,
       transaction_history: transactionHistory,
     });
 
+    // ✅ Return full user object to frontend (excluding password)
     res.status(201).json({
       message: "User registered successfully",
-      userId: newUser.id,
-      referralCode: newUser.referral_code,
-      referralUsed: referralCode || null,
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+        referral_code: newUser.referral_code,
+        referred_by_id: newUser.referred_by_id,
+      },
     });
   } catch (err) {
     console.error("❌ Registration Error:", err.message);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 
 // ✅ Login User or Admin
