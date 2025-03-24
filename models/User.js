@@ -34,6 +34,14 @@ module.exports = (sequelize, DataTypes) => {
           key: "id",
         },
       },
+      referral_code: {
+        type: DataTypes.STRING,
+        unique: true
+      },
+      referral_bonus_awarded: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+      }      
     },
     {
       timestamps: true,
