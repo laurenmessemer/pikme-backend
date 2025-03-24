@@ -14,27 +14,59 @@ const generateToken = (user) => {
 // ✅ Register New User
 exports.registerUser = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, referralCode } = req.body;
 
+    // ✅ Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    let referredByUser = null;
+
+    // ✅ Validate referral code if provided
+    if (referralCode) {
+      referredByUser = await User.findOne({ where: { referral_code: referralCode } });
+      if (!referredByUser) {
+        return res.status(400).json({ message: "Invalid referral code." });
+      }
+    }
+
+    // ✅ Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
+
+    // ✅ Create new user
     const newUser = await User.create({
       username,
       email,
       password_hash: hashedPassword,
-      role: "participant", // ✅ Default role
+      role: "participant",
+      referred_by_id: referredByUser ? referredByUser.id : null,
     });
 
-    res.status(201).json({ message: "User registered successfully", userId: newUser.id });
+    // ✅ Generate referral code for new user (e.g., PIK000123)
+    const referralCodeForNewUser = `PIK${String(newUser.id).padStart(6, "0")}`;
+    newUser.referral_code = referralCodeForNewUser;
+
+    // ✅ Save referral code
+    await newUser.save();
+
+    // (Optional) Flag for later bonus awarding
+    // newUser.referral_bonus_awarded = false;
+
+    res.status(201).json({
+      message: "User registered successfully",
+      userId: newUser.id,
+      referralCode: newUser.referral_code,
+      referralUsed: referralCode || null,
+    });
+
   } catch (err) {
     console.error("❌ Registration Error:", err.message);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 // ✅ Login User or Admin
 exports.loginUser = async (req, res) => {

@@ -18,7 +18,9 @@ const voteRoutes = require("./routes/voteRoutes");
 const LeaderboardRoutes = require("./routes/leaderboardRoutes");
 const WinnersRoutes = require("./routes/winnersRoutes");
 const adminCompetitionRoutes = require("./routes/adminCompetitionRoutes");
-const webhookRoutes = require("./webhook"); // or "./routes/webhook" if it's inside /routes
+const webhookRoutes = require("./webhook");
+const referralRoutes = require("./routes/referralRoutes");
+
 
 
 const app = express();
@@ -91,6 +93,7 @@ app.use("/api/leaderboard", LeaderboardRoutes);
 console.log("✅ Registering Admin Competitions Route...");
 app.use("/api/competitions", adminCompetitionRoutes);
 app.use("/webhook", webhookRoutes);
+app.use("/api/referral", referralRoutes);
 
 // ✅ Default Route
 app.get("/", (req, res) => {
