@@ -15,10 +15,21 @@ const getWallet = async (req, res) => {
       return res.status(404).json({ error: "Wallet not found for this user." });
     }
 
-    // ✅ Sort transaction history by most recent first
-    const sortedTransactions = (wallet.transaction_history || []).sort(
+    // ✅ Ensure all transactions have required fields
+    const safeTransactions = (wallet.transaction_history || []).map((tx) => ({
+      type: tx.type || "unknown",
+      description: tx.description || "No description provided",
+      timestamp: tx.timestamp || new Date().toISOString(),
+      amount: typeof tx.amount === "number" ? tx.amount : 0,
+      currency: tx.currency || "🟠",
+    }));
+
+    // ✅ Sort by most recent first
+    const sortedTransactions = safeTransactions.sort(
       (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
     );
+
+    console.log("🏦 Wallet transaction history sent to frontend:", sortedTransactions);
 
     return res.json({
       balance: wallet.token_balance,
@@ -29,7 +40,5 @@ const getWallet = async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
-
 
 module.exports = { getWallet };
