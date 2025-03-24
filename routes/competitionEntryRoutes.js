@@ -34,5 +34,10 @@ router.get("/status", CompetitionEntryController.getCompetitionStatus);
 // ✅ Confirm Submission (Marks Competition as Complete)
 router.post("/confirm", CompetitionEntryController.confirmSubmission);
 
+// ✅ Get Invite for Competition
+router.get("/invite/:inviteLink", CompetitionEntryController.getInviteCompetition);
+
+// ✅ Accept Invite for Competition
+router.post("/accept-invite", CompetitionEntryController.acceptInvite);
 
 module.exports = router;

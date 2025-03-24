@@ -207,7 +207,13 @@ exports.getOpponentInfo = async (req, res) => {
       let opponent = null;
   
       if (String(competition.user1_id) === String(userId)) {
-        if (!competition.user2_id) return res.status(200).json({ opponent: null });
+        if (!competition.user2_id) {
+          return res.status(200).json({
+            opponent: null,
+            matchType: competition.match_type,
+            inviteLink: competition.invite_link || null
+          });
+        }
         opponent = {
           id: competition.User2?.id,
           username: competition.User2?.username,
@@ -225,10 +231,15 @@ exports.getOpponentInfo = async (req, res) => {
         return res.status(403).json({ error: "User is not a participant in this competition." });
       }
   
-      res.status(200).json({ opponent });
+      res.status(200).json({
+        opponent,
+        matchType: competition.match_type,
+        inviteLink: competition.invite_link || null
+      });
   
     } catch (error) {
       console.error("❌ Error fetching opponent info:", error);
       res.status(500).json({ error: "Internal server error." });
     }
   };
+  

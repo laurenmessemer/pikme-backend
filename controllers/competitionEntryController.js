@@ -14,8 +14,6 @@ AWS.config.update({
 
 const s3 = new AWS.S3();
 
-
-
 // ✅ Fix: Ensure `getUploadURL` is properly defined before exporting
 const getUploadURL = async (req, res) => {
   try {
@@ -131,6 +129,8 @@ const confirmPayment = async (req, res) => {
     console.log("🛠️ Incoming Confirm Payment Request:", req.body);
 
     const { user_id, contest_id, entry_fee, match_type } = req.body;
+    console.log("🧠 Confirm Payment - match_type received:", match_type);
+
 
     if (!user_id || !contest_id || entry_fee === undefined || !match_type) {
       console.error("❌ Missing required fields:", { user_id, contest_id, entry_fee, match_type });
@@ -200,8 +200,9 @@ const confirmPayment = async (req, res) => {
       });
 
       if (match_type === "invite_friend") {
-        competition.invite_link = `https://pikme.com/invite/${competition.id}`;
-        await competition.save();
+        const inviteCode = crypto.randomBytes(6).toString("hex"); // e.g. "a1b2c3d4e5f6"
+          competition.invite_link = inviteCode;
+          await competition.save();
       }
 
       console.log(`✅ New competition created with ID ${competition.id} for user ${user_id}`);
@@ -329,6 +330,87 @@ const confirmSubmission = async (req, res) => {
   }
 };
 
+
+const getInviteCompetition = async (req, res) => {
+  const { inviteLink } = req.params;
+
+  try {
+    const competition = await Competition.findOne({ where: { invite_link: inviteLink } });
+
+    if (!competition) {
+      return res.status(404).json({ message: "Invite link is invalid or expired." });
+    }
+
+    if (competition.user2_id) {
+      return res.status(400).json({ message: "This competition already has a second participant." });
+    }
+
+    res.status(200).json({ competition });
+  } catch (error) {
+    console.error("❌ Error fetching invite competition:", error);
+    res.status(500).json({ message: "Failed to fetch invite competition." });
+  }
+};
+
+const acceptInvite = async (req, res) => {
+  try {
+    const { inviteLink, user_id, imageUrl } = req.body;
+
+    if (!inviteLink || !user_id || !imageUrl) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    const competition = await Competition.findOne({
+      where: { invite_link: inviteLink, match_type: "invite_friend", status: "Waiting" },
+      include: [{ model: Contest }],
+    });
+
+    if (!competition) {
+      return res.status(404).json({ message: "Invalid or expired invite link." });
+    }
+
+    if (competition.user1_id === user_id) {
+      return res.status(400).json({ message: "You cannot join your own invite." });
+    }
+
+    if (competition.user2_id) {
+      return res.status(400).json({ message: "This competition already has two players." });
+    }
+
+    const wallet = await Wallet.findOne({ where: { user_id } });
+
+    if (!wallet) {
+      return res.status(404).json({ message: "Wallet not found." });
+    }
+
+    const entryFee = competition.Contest.entry_fee ?? 0;
+
+    if (wallet.token_balance < entryFee) {
+      return res.status(400).json({ message: "Insufficient tokens to join competition." });
+    }
+
+    // Deduct tokens
+    wallet.token_balance -= entryFee;
+    await wallet.save();
+
+    // Update competition
+    competition.user2_id = user_id;
+    competition.user2_image = imageUrl;
+    competition.status = "Active";
+    await competition.save();
+
+    res.status(200).json({
+      message: "Successfully joined competition!",
+      competition,
+      new_balance: wallet.token_balance,
+    });
+  } catch (error) {
+    console.error("❌ Error accepting invite:", error);
+    res.status(500).json({ message: "Server error accepting invite.", error: error.message });
+  }
+};
+
+
 // ✅ Ensure all functions are correctly exported
 module.exports = {
   getUploadURL,
@@ -337,5 +419,7 @@ module.exports = {
   confirmPayment,
   enterCompetition,
   getCompetitionStatus, // ✅ Fix: Ensure this function exists before exporting
-  confirmSubmission, // ✅ Fix: Ensure this function exists before exporting
+  confirmSubmission,
+  getInviteCompetition, // ✅ Fix: Ensure this function exists before exporting
+  acceptInvite,
 };
