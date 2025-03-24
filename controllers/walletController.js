@@ -18,7 +18,7 @@ const getWallet = async (req, res) => {
     // ✅ Ensure all transactions have required fields
     const safeTransactions = (wallet.transaction_history || []).map((tx) => ({
       type: tx.type || "unknown",
-      description: tx.description || "No description provided",
+      description: tx.description || "PikMe Token Transaction",
       timestamp: tx.timestamp || new Date().toISOString(),
       amount: typeof tx.amount === "number" ? tx.amount : 0,
       currency: tx.currency || "🟠",
