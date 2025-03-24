@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { User } = require("../models");
+const { User, Wallet } = require("../models");
 
 // ✅ Generate JWT Token
 const generateToken = (user) => {
@@ -11,7 +11,6 @@ const generateToken = (user) => {
   );
 };
 
-// ✅ Register New User
 exports.registerUser = async (req, res) => {
   try {
     const { username, email, password, referralCode } = req.body;
@@ -48,11 +47,57 @@ exports.registerUser = async (req, res) => {
     const referralCodeForNewUser = `PIK${String(newUser.id).padStart(6, "0")}`;
     newUser.referral_code = referralCodeForNewUser;
 
-    // ✅ Save referral code
+    // ✅ Default: referral bonus not yet awarded
+    newUser.referral_bonus_awarded = referredByUser ? false : null;
     await newUser.save();
 
-    // (Optional) Flag for later bonus awarding
-    // newUser.referral_bonus_awarded = false;
+    // ✅ Build transaction history
+    const transactionHistory = [
+      {
+        type: "Joining Bonus",
+        description: "Joining Bonus: +10 tokens",
+        amount: 10,
+        timestamp: new Date(),
+      },
+    ];
+
+    // ✅ Referral bonus (if applicable)
+    if (referredByUser) {
+      transactionHistory.push({
+        type: "Referral Bonus",
+        description: "Used referral code: +10 tokens",
+        amount: 10,
+        timestamp: new Date(),
+      });
+
+      // ✅ Update referring user's wallet
+      const refWallet = await Wallet.findOne({ where: { user_id: referredByUser.id } });
+      if (refWallet) {
+        refWallet.token_balance += 10;
+        refWallet.transaction_history = [
+          ...(refWallet.transaction_history || []),
+          {
+            type: "Referral Reward",
+            description: `Referral reward for inviting ${username}: +10 tokens`,
+            amount: 10,
+            timestamp: new Date(),
+          },
+        ];
+        await refWallet.save();
+      }
+
+      // ✅ Update referral bonus flag
+      newUser.referral_bonus_awarded = true;
+      await newUser.save();
+    }
+
+    // ✅ Create wallet for new user
+    const startingBalance = referredByUser ? 20 : 10;
+    await Wallet.create({
+      user_id: newUser.id,
+      token_balance: startingBalance,
+      transaction_history: transactionHistory,
+    });
 
     res.status(201).json({
       message: "User registered successfully",
@@ -60,7 +105,6 @@ exports.registerUser = async (req, res) => {
       referralCode: newUser.referral_code,
       referralUsed: referralCode || null,
     });
-
   } catch (err) {
     console.error("❌ Registration Error:", err.message);
     res.status(500).json({ message: "Server error", error: err.message });
