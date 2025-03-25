@@ -16,17 +16,27 @@ exports.getUserSubmissions = async (req, res) => {
             },
             include: [
                 {
-                    model: Contest,
-                    attributes: ["status"],
-                    include: [
-                        {
-                            model: Theme, 
-                            as: "Theme",  // ✅ Ensures correct alias matching in the query
-                            attributes: ["name"], // ✅ Fetch the theme name
-                        },
-                    ],
+                  model: Contest,
+                  attributes: ["status"],
+                  include: [
+                    {
+                      model: Theme,
+                      as: "Theme",
+                      attributes: ["name"],
+                    },
+                  ],
                 },
-            ],
+                {
+                  model: User,
+                  as: "User1",
+                  attributes: ["id", "username"],
+                },
+                {
+                  model: User,
+                  as: "User2",
+                  attributes: ["id", "username"],
+                },
+              ],              
             order: [["createdAt", "DESC"]],
         });
 
@@ -34,7 +44,10 @@ exports.getUserSubmissions = async (req, res) => {
         const formattedSubmissions = competitions.map((comp) => ({
             id: comp.id,
             image: comp.user1_id === parseInt(userId) ? comp.user1_image : comp.user2_image,
-            username: "Unknown", // ✅ Update if usernames are stored
+            username:
+                comp.user1_id === parseInt(userId)
+                    ? comp.User1?.username || "Me"
+                    : comp.User2?.username || "Me",
             theme: comp.Contest?.Theme?.name || "Unknown Theme", // ✅ Fetch theme name correctly
             contestStatus: comp.Contest.status, // ✅ Fetch contest status from Contest
             position: "N/A", // ✅ Update if needed
