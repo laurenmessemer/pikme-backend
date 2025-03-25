@@ -80,27 +80,43 @@ const getLiveContests = async (req, res) => {
 // ✅ Create a new contest
 const createContest = async (req, res) => {
   try {
-    const { creator_id, theme_id, status, entry_fee, prize_pool, submission_deadline, voting_live_date, voting_deadline } = req.body;
+    const {
+      creator_id,
+      theme_id,
+      status,
+      entry_fee,
+      prize_pool,
+      submission_deadline,
+      voting_live_date,
+      voting_deadline,
+      winnings,
+      total_entries,
+      contest_live_date,
+    } = req.body;
     
     console.log('Creating contest with data:', req.body); // Log the incoming data
 
     const newContest = await Contest.create({
       creator_id,
       theme_id,
-      status: 'Live', // Set the default status value here
+      status: status || 'Live', // Default to 'Live' if not provided
       entry_fee,
       prize_pool,
       submission_deadline,
       voting_live_date,
       voting_deadline,
+      winnings,
+      total_entries,
+      contest_live_date,
     });
 
     res.status(201).json(newContest);
   } catch (error) {
-    console.error("❌ Error creating contest:", error);
+    console.error("❌ Error creating contest:", error.message, error.stack);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 
 // ✅ Export functions correctly
