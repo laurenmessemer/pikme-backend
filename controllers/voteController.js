@@ -31,6 +31,8 @@ exports.getVotingEntries = async (req, res) => {
       id: comp.id,
       user1_image: comp.user1_image,
       user2_image: comp.user2_image,
+      votes_user1: comp.votes_user1, // ✅ add this
+      votes_user2: comp.votes_user2, // ✅ add this
       contestId: comp.Contest.id,
       entry_fee: comp.Contest.entry_fee,
       prize_pool: parseFloat(comp.Contest.prize_pool),
@@ -38,6 +40,7 @@ exports.getVotingEntries = async (req, res) => {
       theme_description: comp.Contest.Theme?.description || "",
       cover_image: comp.Contest.Theme?.cover_image_url || "",
     }));
+    
 
     res.status(200).json({ competitions: formatted });
   } catch (error) {
