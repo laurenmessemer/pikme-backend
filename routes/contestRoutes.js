@@ -4,6 +4,7 @@ const {
   createContest,
   getLiveContests,
   getContestById,
+  getLiveAndUpcomingContests,
 } = require("../controllers/contestController"); // ✅ Ensure correct import
 
 const router = express.Router();
@@ -13,6 +14,9 @@ router.get("/", getAllContests);
 
 // ✅ Fetch only live contests
 router.get("/live", getLiveContests); 
+
+// ✅ Fetch only live and upcoming contests
+router.get("/live-upcoming", getLiveAndUpcomingContests);
 
 // ✅ Fetch single contest
 router.get("/:id", getContestById); 

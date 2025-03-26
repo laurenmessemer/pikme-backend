@@ -1,5 +1,5 @@
 const { Contest, User, Theme } = require("../models"); // ✅ Ensure Theme is imported
-
+const { Op } = require("sequelize");
 
 // ✅ Fetch all contests
 const getAllContests = async (req, res) => {
@@ -52,6 +52,31 @@ const getContestById = async (req, res) => {
   }
 };
 
+
+const getLiveAndUpcomingContests = async (req, res) => {
+  try {
+    const contests = await Contest.findAll({
+      where: {
+        status: {
+          [Op.or]: ["Live", "Upcoming"],
+        },
+      },
+      include: [
+        {
+          model: Theme,
+          as: "Theme",
+          attributes: ["name", "description", "cover_image_url"],
+        },
+      ],
+    });
+
+    console.log("✅ Live & Upcoming Contests:", JSON.stringify(contests, null, 2));
+    res.json(contests);
+  } catch (error) {
+    console.error("❌ Error fetching live & upcoming contests:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
 
 
 // ✅ Fetch only live contests
@@ -124,5 +149,6 @@ module.exports = {
   getAllContests,
   getContestById,
   getLiveContests,
+  getLiveAndUpcomingContests,
   createContest,
 };
