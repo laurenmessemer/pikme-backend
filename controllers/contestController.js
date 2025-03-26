@@ -52,7 +52,6 @@ const getContestById = async (req, res) => {
   }
 };
 
-
 const getLiveAndUpcomingContests = async (req, res) => {
   try {
     const contests = await Contest.findAll({
@@ -68,16 +67,22 @@ const getLiveAndUpcomingContests = async (req, res) => {
           attributes: ["name", "description", "cover_image_url"],
         },
       ],
+      order: [
+        [Sequelize.literal(`CASE 
+          WHEN status = 'Live' THEN 0 
+          WHEN status = 'Upcoming' THEN 1 
+          ELSE 2 END`), 'ASC'],
+        ['contest_live_date', 'ASC'], // Optional: add secondary sort
+      ],
     });
 
-    console.log("✅ Live & Upcoming Contests:", JSON.stringify(contests, null, 2));
+    console.log("✅ Ordered Live & Upcoming Contests:", JSON.stringify(contests, null, 2));
     res.json(contests);
   } catch (error) {
     console.error("❌ Error fetching live & upcoming contests:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
 
 // ✅ Fetch only live contests
 const getLiveContests = async (req, res) => {
@@ -100,7 +105,6 @@ const getLiveContests = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
 
 // ✅ Create a new contest
 const createContest = async (req, res) => {
