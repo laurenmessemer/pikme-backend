@@ -69,8 +69,8 @@ const getLiveAndUpcomingContests = async (req, res) => {
       ],
       order: [
         [literal(`CASE
-          WHEN status = 'Live' THEN 0
-          WHEN status = 'Upcoming' THEN 1
+          WHEN "Contest"."status" = 'Live' THEN 0
+          WHEN "Contest"."status" = 'Upcoming' THEN 1
           ELSE 2 END`), 'ASC'],
       ],
     });
