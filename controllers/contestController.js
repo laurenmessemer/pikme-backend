@@ -1,5 +1,5 @@
 const { Contest, User, Theme } = require("../models"); // ✅ Ensure Theme is imported
-const { Op, Sequelize } = require("sequelize");
+const { Op, literal } = require("sequelize");
 
 // ✅ Fetch all contests
 const getAllContests = async (req, res) => {
@@ -68,11 +68,10 @@ const getLiveAndUpcomingContests = async (req, res) => {
         },
       ],
       order: [
-        [Sequelize.literal(`CASE 
-          WHEN status = 'Live' THEN 0 
-          WHEN status = 'Upcoming' THEN 1 
+        [literal(`CASE
+          WHEN status = 'Live' THEN 0
+          WHEN status = 'Upcoming' THEN 1
           ELSE 2 END`), 'ASC'],
-        ['contest_live_date', 'ASC'], // Optional: add secondary sort
       ],
     });
 
