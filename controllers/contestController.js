@@ -1,5 +1,5 @@
 const { Contest, User, Theme } = require("../models"); // ✅ Ensure Theme is imported
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 
 // ✅ Fetch all contests
 const getAllContests = async (req, res) => {
