@@ -146,18 +146,27 @@ exports.getLiveContests = async (req, res) => {
         let allEntries = [];
 
         competitions.forEach((comp) => {
-            const isUser1 = comp.votes_user1 >= comp.votes_user2;
-            const winner = {
-                id: isUser1 ? comp.user1_id : comp.user2_id,
-                username: isUser1 ? comp.User1?.username : comp.User2?.username,
-                imageUrl: isUser1 ? comp.user1_image : comp.user2_image,
-                votes: isUser1 ? comp.votes_user1 : comp.votes_user2,
-                earnings: "$0"
-            };
-
-            allEntries.push(winner);
+          // Add User 1's entry
+          allEntries.push({
+            id: comp.user1_id,
+            username: comp.User1?.username,
+            imageUrl: comp.user1_image,
+            votes: comp.votes_user1,
+            earnings: "$0"
+          });
+        
+          // Add User 2's entry (if exists)
+          if (comp.user2_id) {
+            allEntries.push({
+              id: comp.user2_id,
+              username: comp.User2?.username,
+              imageUrl: comp.user2_image,
+              votes: comp.votes_user2,
+              earnings: "$0"
+            });
+          }
         });
-
+        
         // Sort by votes and get the top 3
         leaderboard = allEntries.sort((a, b) => b.votes - a.votes).slice(0, 3);
 
