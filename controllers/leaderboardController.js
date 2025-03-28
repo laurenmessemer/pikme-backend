@@ -152,7 +152,7 @@ exports.getLiveContests = async (req, res) => {
             username: comp.User1?.username,
             imageUrl: comp.user1_image,
             votes: comp.votes_user1,
-            earnings: "$0"
+            earnings: "0"
           });
         
           // Add User 2's entry (if exists)
@@ -162,7 +162,7 @@ exports.getLiveContests = async (req, res) => {
               username: comp.User2?.username,
               imageUrl: comp.user2_image,
               votes: comp.votes_user2,
-              earnings: "$0"
+              earnings: "0"
             });
           }
         });
@@ -171,9 +171,9 @@ exports.getLiveContests = async (req, res) => {
         leaderboard = allEntries.sort((a, b) => b.votes - a.votes);
 
         // Assign earnings from "winnings" column in Contest
-        if (leaderboard.length > 0) leaderboard[0].earnings = `$${contest.winnings.first}`;
-        if (leaderboard.length > 1) leaderboard[1].earnings = `$${contest.winnings.second}`;
-        if (leaderboard.length > 2) leaderboard[2].earnings = `$${contest.winnings.third}`;
+        if (leaderboard.length > 0) leaderboard[0].earnings = `${contest.winnings.first}`;
+        if (leaderboard.length > 1) leaderboard[1].earnings = `${contest.winnings.second}`;
+        if (leaderboard.length > 2) leaderboard[2].earnings = `${contest.winnings.third}`;
 
         // Get logged-in user's submission (if available)
         const userId = req.user?.id; // Ensure authentication middleware is applied
@@ -182,7 +182,7 @@ exports.getLiveContests = async (req, res) => {
             if (userEntry) {
                 userSubmission = {
                     ...userEntry,
-                    earnings: leaderboard.find((entry) => entry.id === userId)?.earnings || "$0"
+                    earnings: leaderboard.find((entry) => entry.id === userId)?.earnings || "0"
                 };
             }
         }
@@ -194,7 +194,7 @@ exports.getLiveContests = async (req, res) => {
                 contestName: contest.Theme?.name || "Unknown Contest",
                 contestId: contest.id,
                 entries: contest.total_entries,
-                prizePool: `$${contest.prize_pool}`,
+                prizePool: `${contest.prize_pool}`,
                 userSubmission,
                 leaderboard,
                 maxWinners: 3
