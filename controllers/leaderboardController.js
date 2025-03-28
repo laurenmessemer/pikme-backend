@@ -171,9 +171,9 @@ exports.getLiveContests = async (req, res) => {
       const leaderboard = allEntries.sort((a, b) => b.margin - a.margin);
 
       // Assign earnings to top 3
-      if (leaderboard[0]) leaderboard[0].earnings = `$${contest.winnings.first}`;
-      if (leaderboard[1]) leaderboard[1].earnings = `$${contest.winnings.second}`;
-      if (leaderboard[2]) leaderboard[2].earnings = `$${contest.winnings.third}`;
+      if (leaderboard[0]) leaderboard[0].earnings = `${contest.winnings.first}`;
+      if (leaderboard[1]) leaderboard[1].earnings = `${contest.winnings.second}`;
+      if (leaderboard[2]) leaderboard[2].earnings = `${contest.winnings.third}`;
 
       // Get user's entry, if logged in
       const userId = req.user?.id;
