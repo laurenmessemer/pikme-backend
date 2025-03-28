@@ -168,7 +168,7 @@ exports.getLiveContests = async (req, res) => {
         });
         
         // Sort by votes and get the top 3
-        leaderboard = allEntries.sort((a, b) => b.votes - a.votes).slice(0, 3);
+        leaderboard = allEntries.sort((a, b) => b.votes - a.votes);
 
         // Assign earnings from "winnings" column in Contest
         if (leaderboard.length > 0) leaderboard[0].earnings = `$${contest.winnings.first}`;
