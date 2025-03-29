@@ -21,6 +21,7 @@ const adminCompetitionRoutes = require("./routes/adminCompetitionRoutes");
 const webhookRoutes = require("./webhook");
 const referralRoutes = require("./routes/referralRoutes");
 const activityRoutes = require("./routes/activityRoutes");
+const reportRoutes = require("./routes/reportRoutes"); // ✅ Add Report Routes
 
 
 const app = express();
@@ -94,6 +95,7 @@ app.use("/api/competitions", adminCompetitionRoutes);
 app.use("/webhook", webhookRoutes);
 app.use("/api/referral", referralRoutes);
 app.use("/api/activity", activityRoutes);
+app.use("/api/reports", reportRoutes); // ✅ Add Report Routes
 
 // ✅ Default Route
 app.get("/", (req, res) => {

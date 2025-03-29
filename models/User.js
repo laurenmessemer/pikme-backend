@@ -65,6 +65,9 @@ module.exports = (sequelize, DataTypes) => {
     // ✅ Removed unnecessary relationships like "Alert" and simplified "Competition" & "Incident"
     User.hasMany(models.Competition, { foreignKey: "user1_id", onDelete: "CASCADE" });
     User.hasMany(models.Competition, { foreignKey: "user2_id", onDelete: "CASCADE" });
+
+    User.hasMany(models.Report, { foreignKey: "reporter_id", as: "ReportsMade" });
+    User.hasMany(models.Report, { foreignKey: "reported_user_id", as: "ReportsReceived" });
   };
 
   return User;
