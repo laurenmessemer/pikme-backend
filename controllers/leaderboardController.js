@@ -6,8 +6,9 @@ exports.getUserSubmissions = async (req, res) => {
         const { userId } = req.query;
 
         if (!userId) {
-            return res.status(400).json({ error: "User ID is required." });
+          return res.json({ success: true, submissions: [] });
         }
+        
 
         // ✅ Fetch competitions where the user is user1 or user2
         const competitions = await Competition.findAll({
