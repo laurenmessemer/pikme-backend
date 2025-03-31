@@ -173,7 +173,7 @@ exports.getLiveContests = async (req, res) => {
 
         const userEntry = userMap.get(id);
         userEntry.totalMargin += margin;
-        userEntry.images.push(imageUrl);
+        userEntry.images.push({ imageUrl, margin });
       });
     });
 
