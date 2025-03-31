@@ -120,93 +120,188 @@ exports.getWinners = async (req, res) => {
 
 exports.getLiveContests = async (req, res) => {
   try {
-      console.log("📢 Fetching live contests...");
+    console.log("📢 Fetching live contests...");
 
-      const contest = await Contest.findOne({
-          where: { status: "Live" },
-          include: [{ model: Theme, as: "Theme", attributes: ["name"] }],
-          order: [["contest_live_date", "DESC"]],
-      });
+    const contest = await Contest.findOne({
+      where: { status: "Live" },
+      include: [{ model: Theme, as: "Theme", attributes: ["name"] }],
+      order: [["contest_live_date", "DESC"]],
+    });
 
-      if (!contest) {
-          return res.json({ success: true, contest: null });
-      }
+    if (!contest) {
+      return res.json({ success: true, contest: null });
+    }
 
-      const competitions = await Competition.findAll({
-          where: { contest_id: contest.id },
-          include: [
-              { model: User, as: "User1", attributes: ["id", "username"] },
-              { model: User, as: "User2", attributes: ["id", "username"] }
-          ]
-      });
+    const competitions = await Competition.findAll({
+      where: { contest_id: contest.id },
+      include: [
+        { model: User, as: "User1", attributes: ["id", "username"] },
+        { model: User, as: "User2", attributes: ["id", "username"] }
+      ]
+    });
 
-      let allEntries = [];
+    const userMap = new Map();
 
-      competitions.forEach((comp) => {
-          // User 1
-          allEntries.push({
-              id: comp.user1_id,
-              username: comp.User1?.username,
-              imageUrl: comp.user1_image,
-              votes: comp.votes_user1,
-              opponentVotes: comp.votes_user2 || 0,
-              margin: comp.votes_user1 - (comp.votes_user2 || 0),
-              earnings: "0"
+    competitions.forEach((comp) => {
+      const entries = [
+        {
+          id: comp.user1_id,
+          username: comp.User1?.username || "Unknown",
+          imageUrl: comp.user1_image,
+          margin: comp.votes_user1 - (comp.votes_user2 || 0),
+        },
+        comp.user2_id && comp.user2_image
+          ? {
+              id: comp.user2_id,
+              username: comp.User2?.username || "Unknown",
+              imageUrl: comp.user2_image,
+              margin: comp.votes_user2 - (comp.votes_user1 || 0),
+            }
+          : null,
+      ].filter(Boolean);
+
+      entries.forEach(({ id, username, imageUrl, margin }) => {
+        if (!userMap.has(id)) {
+          userMap.set(id, {
+            id,
+            username,
+            totalMargin: 0,
+            images: [],
+            earnings: "0",
           });
+        }
 
-          // User 2
-          if (comp.user2_id) {
-              allEntries.push({
-                  id: comp.user2_id,
-                  username: comp.User2?.username,
-                  imageUrl: comp.user2_image,
-                  votes: comp.votes_user2,
-                  opponentVotes: comp.votes_user1 || 0,
-                  margin: comp.votes_user2 - (comp.votes_user1 || 0),
-                  earnings: "0"
-              });
-          }
+        const userEntry = userMap.get(id);
+        userEntry.totalMargin += margin;
+        userEntry.images.push(imageUrl);
       });
+    });
 
-      // Sort by margin of victory
-      const leaderboard = allEntries.sort((a, b) => b.margin - a.margin);
+    // Convert to array and sort by totalMargin
+    const leaderboard = Array.from(userMap.values()).sort(
+      (a, b) => b.totalMargin - a.totalMargin
+    );
 
-      // Assign earnings to top 3
-      if (leaderboard[0]) leaderboard[0].earnings = `${contest.winnings.first}`;
-      if (leaderboard[1]) leaderboard[1].earnings = `${contest.winnings.second}`;
-      if (leaderboard[2]) leaderboard[2].earnings = `${contest.winnings.third}`;
+    // Assign earnings to top 3
+    if (leaderboard[0]) leaderboard[0].earnings = `${contest.winnings.first}`;
+    if (leaderboard[1]) leaderboard[1].earnings = `${contest.winnings.second}`;
+    if (leaderboard[2]) leaderboard[2].earnings = `${contest.winnings.third}`;
 
-      // Get user's entry, if logged in
-      const userId = req.user?.id;
-      let userSubmission = null;
+    const userId = req.user?.id;
+    const userSubmission = userId
+      ? leaderboard.find((u) => u.id === userId)
+      : null;
 
-      if (userId) {
-          const match = leaderboard.find((entry) => entry.id === userId);
-          if (match) {
-              userSubmission = { ...match };
-          }
-      }
-
-      console.log("📊 Leaderboard calculated by margin of victory.");
-      res.json({
-          success: true,
-          contest: {
-              contestName: contest.Theme?.name || "Unknown Contest",
-              contestId: contest.id,
-              entries: contest.total_entries,
-              prizePool: `$${contest.prize_pool}`,
-              userSubmission,
-              leaderboard,
-              maxWinners: 3
-          }
-      });
-
+    return res.json({
+      success: true,
+      contest: {
+        contestName: contest.Theme?.name || "Unknown Contest",
+        contestId: contest.id,
+        entries: contest.total_entries,
+        prizePool: `$${contest.prize_pool}`,
+        leaderboard,
+        userSubmission,
+        maxWinners: 3,
+      },
+    });
   } catch (error) {
-      console.error("❌ Error fetching live contests:", error);
-      res.status(500).json({ success: false, message: "Server error while fetching live contests." });
+    console.error("❌ Error fetching live contests:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching live contests.",
+    });
   }
 };
 
+
+// exports.getLiveContests = async (req, res) => {
+//   try {
+//       console.log("📢 Fetching live contests...");
+
+//       const contest = await Contest.findOne({
+//           where: { status: "Live" },
+//           include: [{ model: Theme, as: "Theme", attributes: ["name"] }],
+//           order: [["contest_live_date", "DESC"]],
+//       });
+
+//       if (!contest) {
+//           return res.json({ success: true, contest: null });
+//       }
+
+//       const competitions = await Competition.findAll({
+//           where: { contest_id: contest.id },
+//           include: [
+//               { model: User, as: "User1", attributes: ["id", "username"] },
+//               { model: User, as: "User2", attributes: ["id", "username"] }
+//           ]
+//       });
+
+//       let allEntries = [];
+
+//       competitions.forEach((comp) => {
+//           // User 1
+//           allEntries.push({
+//               id: comp.user1_id,
+//               username: comp.User1?.username,
+//               imageUrl: comp.user1_image,
+//               votes: comp.votes_user1,
+//               opponentVotes: comp.votes_user2 || 0,
+//               margin: comp.votes_user1 - (comp.votes_user2 || 0),
+//               earnings: "0"
+//           });
+
+//           // User 2
+//           if (comp.user2_id) {
+//               allEntries.push({
+//                   id: comp.user2_id,
+//                   username: comp.User2?.username,
+//                   imageUrl: comp.user2_image,
+//                   votes: comp.votes_user2,
+//                   opponentVotes: comp.votes_user1 || 0,
+//                   margin: comp.votes_user2 - (comp.votes_user1 || 0),
+//                   earnings: "0"
+//               });
+//           }
+//       });
+
+//       // Sort by margin of victory
+//       const leaderboard = allEntries.sort((a, b) => b.margin - a.margin);
+
+//       // Assign earnings to top 3
+//       if (leaderboard[0]) leaderboard[0].earnings = `${contest.winnings.first}`;
+//       if (leaderboard[1]) leaderboard[1].earnings = `${contest.winnings.second}`;
+//       if (leaderboard[2]) leaderboard[2].earnings = `${contest.winnings.third}`;
+
+//       // Get user's entry, if logged in
+//       const userId = req.user?.id;
+//       let userSubmission = null;
+
+//       if (userId) {
+//           const match = leaderboard.find((entry) => entry.id === userId);
+//           if (match) {
+//               userSubmission = { ...match };
+//           }
+//       }
+
+//       console.log("📊 Leaderboard calculated by margin of victory.");
+//       res.json({
+//           success: true,
+//           contest: {
+//               contestName: contest.Theme?.name || "Unknown Contest",
+//               contestId: contest.id,
+//               entries: contest.total_entries,
+//               prizePool: `$${contest.prize_pool}`,
+//               userSubmission,
+//               leaderboard,
+//               maxWinners: 3
+//           }
+//       });
+
+//   } catch (error) {
+//       console.error("❌ Error fetching live contests:", error);
+//       res.status(500).json({ success: false, message: "Server error while fetching live contests." });
+//   }
+// };
 
 exports.getOpponentInfo = async (req, res) => {
     try {
