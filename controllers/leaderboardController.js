@@ -192,6 +192,8 @@ exports.getLiveContests = async (req, res) => {
       ? leaderboard.find((u) => u.id === userId)
       : null;
 
+    console.log("📤 Final leaderboard:", JSON.stringify(leaderboard, null, 2));
+  
     return res.json({
       success: true,
       contest: {
