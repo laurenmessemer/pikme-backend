@@ -96,7 +96,7 @@ app.use("/webhook", webhookRoutes);
 app.use("/api/referral", referralRoutes);
 app.use("/api/activity", activityRoutes);
 app.use("/api/reports", reportRoutes); 
-app.use("/api/contact", contactRoutes);
+app.use("/api", contactRoutes);
 
 // ✅ Default Route
 app.get("/", (req, res) => {
