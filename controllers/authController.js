@@ -1,6 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { User, Wallet } = require("../models");
+const sendConfirmationEmail = require("../utils/sendConfirmationEmail"); // ✅ Add this line
+
 
 // ✅ Generate JWT Token
 const generateToken = (user) => {
@@ -10,6 +12,7 @@ const generateToken = (user) => {
     { expiresIn: "2h" }
   );
 };
+
 
 exports.registerUser = async (req, res) => {
   try {
@@ -43,11 +46,14 @@ exports.registerUser = async (req, res) => {
       referred_by_id: referredByUser ? referredByUser.id : null,
     });
 
-    // ✅ Generate unique referral code (e.g., PIK000123)
+    // ✅ Generate referral code
     newUser.referral_code = `PIK${String(newUser.id).padStart(6, "0")}`;
-
-    // ✅ Track whether bonus has been awarded (null if no referral)
     newUser.referral_bonus_awarded = referredByUser ? false : null;
+
+    // ✅ Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    newUser.verification_token = verificationToken;
+
     await newUser.save();
 
     // ✅ Build transaction history for new user's wallet
@@ -62,7 +68,7 @@ exports.registerUser = async (req, res) => {
 
     let startingBalance = 10;
 
-    // ✅ If referred, add referral bonus to both users
+    // ✅ If referred, apply referral bonus
     if (referredByUser) {
       transactionHistory.push({
         type: "Referral Bonus",
@@ -71,7 +77,6 @@ exports.registerUser = async (req, res) => {
         timestamp: new Date(),
       });
 
-      // ⬆️ New user gets 10 extra tokens
       startingBalance += 10;
 
       // ✅ Update referring user's wallet
@@ -90,21 +95,23 @@ exports.registerUser = async (req, res) => {
         await refWallet.save();
       }
 
-      // ✅ Mark bonus as awarded for tracking
       newUser.referral_bonus_awarded = true;
       await newUser.save();
     }
 
-    // ✅ Create wallet for the new user
+    // ✅ Create wallet for new user
     await Wallet.create({
       user_id: newUser.id,
       token_balance: startingBalance,
       transaction_history: transactionHistory,
     });
 
-    // ✅ Return full user object to frontend (excluding password)
+    // ✅ Send verification email via Mailchimp
+    await sendConfirmationEmail(newUser.email, newUser.username, verificationToken);
+
+    // ✅ Return response
     res.status(201).json({
-      message: "User registered successfully",
+      message: "User registered successfully. Please check your email to verify your account.",
       user: {
         id: newUser.id,
         username: newUser.username,
@@ -169,4 +176,20 @@ exports.getUserProfile = async (req, res) => {
     console.error("❌ Fetch User Error:", err.message);
     res.status(500).json({ message: "Server error" });
   }
+};
+
+exports.verifyEmail = async (req, res) => {
+  const { token } = req.query;
+
+  const user = await User.findOne({ where: { verification_token: token } });
+
+  if (!user) {
+    return res.status(400).json({ message: "Invalid or expired token." });
+  }
+
+  user.is_verified = true;
+  user.verification_token = null;
+  await user.save();
+
+  res.json({ message: "Email verified successfully!" });
 };

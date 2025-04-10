@@ -98,6 +98,8 @@ app.use("/api/activity", activityRoutes);
 app.use("/api/reports", reportRoutes); 
 app.use("/api", contactRoutes);
 
+
+
 // ✅ Default Route
 app.get("/", (req, res) => {
   res.send("Welcome to the PikMe API");

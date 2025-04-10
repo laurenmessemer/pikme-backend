@@ -30,6 +30,7 @@ const getUploadURL = async (req, res) => {
       Key: fileKey,
       Expires: 300, // 5 minutes
       ContentType: fileType || "image/jpeg",
+      CacheControl: "public, max-age=31536000, immutable",
     };
 
     const uploadURL = await s3.getSignedUrlPromise("putObject", params);

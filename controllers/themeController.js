@@ -27,6 +27,7 @@ exports.getUploadURL = async (req, res) => {
       Key: fileKey,
       Expires: 300, // URL expires in 5 minutes
       ContentType: fileType,
+      CacheControl: "public, max-age=31536000, immutable",
     };
 
     // ✅ Use the correctly initialized `s3` instance

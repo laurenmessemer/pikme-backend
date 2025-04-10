@@ -1,5 +1,5 @@
 const express = require("express");
-const { loginUser, registerUser, getUserProfile } = require("../controllers/authController");
+const { loginUser, registerUser, getUserProfile, verifyEmail } = require("../controllers/authController");
 const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -12,5 +12,9 @@ router.post("/login", loginUser);
 
 // ✅ Get Logged-in User Profile (Protected)
 router.get("/me", authMiddleware, getUserProfile);
+
+// ✅ Verify Email
+router.get("/verify-email", verifyEmail);
+
 
 module.exports = router;

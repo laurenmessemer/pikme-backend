@@ -1,5 +1,5 @@
-const { Sequelize } = require("sequelize");
 require("dotenv").config();
+const { Sequelize } = require("sequelize");
 
 console.log("✅ ENV VARIABLES LOADED");
 console.log("DB_HOST:", process.env.DB_HOST);
@@ -30,7 +30,8 @@ const sequelize = new Sequelize(
       }
     }
   }
-); 
+);
+
 
 // Test DB connection
 sequelize.authenticate()
