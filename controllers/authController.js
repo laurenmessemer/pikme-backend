@@ -142,6 +142,10 @@ exports.loginUser = async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
+    
+    if (!user.is_verified) {
+      return res.status(403).json({ message: "Please verify your email before logging in." });
+    }
 
     const token = generateToken(user);
 
