@@ -13,12 +13,17 @@ const s3 = new AWS.S3({
 
 // ✅ Upload File to S3 using AWS credentials directly (no presigned link)
 exports.directUpload = async (req, res) => {
+  console.log("📥 Incoming request to /api/themes/direct-upload");
+
   try {
     if (!req.files || !req.files.coverImage) {
+      console.warn("⚠️ No file found in req.files:", req.files);
       return res.status(400).json({ message: "No image provided." });
     }
 
     const file = req.files.coverImage;
+    console.log("📁 File received:", file.name, file.mimetype, file.size);
+
     const fileExtension = path.extname(file.name);
     const fileKey = `themes/${uuidv4()}${fileExtension}`;
 
@@ -33,12 +38,15 @@ exports.directUpload = async (req, res) => {
 
     const result = await s3.upload(uploadParams).promise();
 
+    console.log("✅ Uploaded to S3:", result.Location);
+
     res.status(200).json({ imageUrl: result.Location });
   } catch (error) {
     console.error("❌ Error uploading file:", error);
     res.status(500).json({ message: "Upload failed", error: error.message });
   }
 };
+
 
 // ✅ Generate a Pre-Signed URL for S3 Upload
 exports.getUploadURL = async (req, res) => {
