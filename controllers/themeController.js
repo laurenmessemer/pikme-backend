@@ -27,6 +27,7 @@ exports.getUploadURL = async (req, res) => {
       Key: fileKey,
       Expires: 300, // 5 minutes
       ContentType: fileType,
+      ACL: "public-read", // ✅ REQUIRED to avoid 403 error
       CacheControl: "public, max-age=31536000, immutable",
     };
 
