@@ -25,6 +25,7 @@ const reportRoutes = require("./routes/reportRoutes"); // ✅ Add Report Routes
 const contactRoutes = require("./routes/contactRoutes"); // ✅ Add Contact Routes
 
 const app = express();
+app.use(fileUpload()); 
 
 
 app.get('/health', (req, res) => {
