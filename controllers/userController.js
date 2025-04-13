@@ -28,7 +28,6 @@ const getUsers = async (req, res) => {
     }
 };
 
-
 const updateUser = async (req, res) => {
     const { id } = req.params;
     const { username, email, role, token_balance } = req.body;
@@ -67,7 +66,6 @@ const updateUser = async (req, res) => {
         res.status(500).json({ message: "Failed to update user.", error: error.message });
     }
 };
-
 
 // ✅ Export functions
 module.exports = {

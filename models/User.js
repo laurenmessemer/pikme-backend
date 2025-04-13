@@ -42,7 +42,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
-      // ✅ NEW FIELDS BELOW
       is_verified: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,

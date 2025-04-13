@@ -45,8 +45,6 @@ exports.getUploadURL = async (req, res) => {
   }
 };
 
-
-
 // ✅ Create Theme in Database
 exports.createTheme = async (req, res) => {
   try {

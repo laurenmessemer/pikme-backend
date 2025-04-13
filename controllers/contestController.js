@@ -5,7 +5,14 @@ const { Op, literal } = require("sequelize");
 const getAllContests = async (req, res) => {
   try {
     const contests = await Contest.findAll({
-      include: [{ model: User, attributes: ["username", "email"] }],
+      include: [
+        { model: User, attributes: ["username", "email"] },
+        {
+          model: Theme,
+          as: "Theme",
+          attributes: ["id", "name", "cover_image_url"], // ⬅️ Grab theme ID, name, and image
+        },
+      ],
     });
     res.json(contests);
   } catch (error) {
@@ -13,6 +20,7 @@ const getAllContests = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 // ✅ Fetch a single contest by ID
 const getContestById = async (req, res) => {
