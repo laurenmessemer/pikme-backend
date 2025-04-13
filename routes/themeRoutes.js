@@ -1,7 +1,7 @@
 const express = require("express");
-const router = require("express").Router();
+const router = express.Router();
 const AWS = require("aws-sdk");
-const fileUpload = require("express-fileupload"); // ✅ Add this line
+const fileUpload = require("express-fileupload");
 require("dotenv").config();
 
 AWS.config.update({
@@ -26,17 +26,18 @@ const {
   directUpload,
 } = require("../controllers/themeController");
 
-router.use(fileUpload()); // ✅ Must come BEFORE routes using `req.files`
+// ✅ Middleware
+router.use(fileUpload());
 console.log("✅ themeRoutes.js loaded");
 
+// ✅ Debugging wrapper
 router.post("/direct-upload", (req, res, next) => {
   console.log("📨 Hit /direct-upload route");
   next();
 }, directUpload);
 
-// ✅ Routes
+// ✅ Other Routes
 router.get("/get-upload-url", getUploadURL);
-router.post("/direct-upload", directUpload);
 router.post("/create", createTheme);
 router.get("/", getAllThemes);
 router.get("/:id", getThemeById);
