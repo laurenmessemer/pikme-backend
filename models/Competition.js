@@ -31,29 +31,29 @@ module.exports = (sequelize, DataTypes) => {
           model: "Users",
           key: "id",
         },
-        allowNull: true, // ✅ Null until an opponent joins
+        allowNull: true, 
         onDelete: "CASCADE",
       },
       user1_image: {
         type: DataTypes.TEXT,
-        allowNull: false, // ✅ User must upload an image to enter
+        allowNull: false, 
       },
       user2_image: {
         type: DataTypes.TEXT,
-        allowNull: true, // ✅ Assigned when second user joins
+        allowNull: true, 
       },
       match_type: {
         type: DataTypes.ENUM("pick_random", "invite_friend"),
-        allowNull: false, // ✅ Defines the matchmaking method
+        allowNull: false, 
       },
       invite_link: {
-        type: DataTypes.STRING, // ✅ Unique invite URL
+        type: DataTypes.STRING, 
         allowNull: true,
         unique: true,
       },
       status: {
         type: DataTypes.ENUM("Waiting", "Active", "Complete"),
-        defaultValue: "Waiting", // ✅ Becomes "Active" when opponent joins
+        defaultValue: "Waiting", 
       },
       votes_user1: {
         type: DataTypes.INTEGER,
@@ -65,7 +65,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       winner_username: {
         type: DataTypes.STRING,
-        allowNull: true, // ✅ Stores the winner’s username
+        allowNull: true, 
       },
       winner_earnings: {
         type: DataTypes.DECIMAL(10, 2),
