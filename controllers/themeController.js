@@ -145,3 +145,33 @@ exports.deleteTheme = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+// ✅ Get all themes
+exports.getAllThemes = async (req, res) => {
+  try {
+    const themes = await Theme.findAll({
+      order: [["createdAt", "DESC"]],
+    });
+    res.status(200).json(themes);
+  } catch (error) {
+    console.error("❌ Error fetching themes:", error);
+    res.status(500).json({ message: "Server error while fetching themes." });
+  }
+};
+
+// ✅ Get a single theme by ID
+exports.getThemeById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const theme = await Theme.findByPk(id);
+
+    if (!theme) {
+      return res.status(404).json({ message: "Theme not found" });
+    }
+
+    res.status(200).json(theme);
+  } catch (error) {
+    console.error("❌ Error fetching theme:", error);
+    res.status(500).json({ message: "Server error while fetching theme." });
+  }
+};

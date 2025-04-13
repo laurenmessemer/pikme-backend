@@ -23,7 +23,6 @@ const {
   deleteThemeEntry,
 } = require("../controllers/themeController");
 
-
 // ✅ AWS S3 Pre-signed URL Route
 router.get("/get-upload-url", getUploadURL);
 
