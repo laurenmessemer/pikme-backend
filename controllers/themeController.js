@@ -15,7 +15,6 @@ const s3 = new AWS.S3({
 exports.getUploadURL = async (req, res) => {
   try {
     const { fileType } = req.query;
-
     if (!fileType) {
       return res.status(400).json({ message: "File type is required" });
     }
@@ -44,8 +43,6 @@ exports.getUploadURL = async (req, res) => {
   }
 };
 
-
-
 // ✅ Create Theme in Database
 exports.createTheme = async (req, res) => {
   try {
@@ -59,7 +56,7 @@ exports.createTheme = async (req, res) => {
       name: themeName,
       description,
       special_rules: specialRules,
-      cover_image_url: coverImageUrl, // ✅ Store S3 URL
+      cover_image_url: coverImageUrl,
     });
 
     res.status(201).json({ message: "Theme created successfully", theme: newTheme });
@@ -69,7 +66,7 @@ exports.createTheme = async (req, res) => {
   }
 };
 
-
+// ✅ Update a Theme
 exports.updateTheme = async (req, res) => {
   try {
     const { id } = req.params;
@@ -91,8 +88,7 @@ exports.updateTheme = async (req, res) => {
   }
 };
 
-
-// ✅ Add an in-house entry to a theme
+// ✅ Add in-house entries to a theme
 exports.addThemeEntry = async (req, res) => {
   try {
     const { id } = req.params;
@@ -116,8 +112,7 @@ exports.addThemeEntry = async (req, res) => {
   }
 };
 
-
-// ✅ Delete an in-house entry
+// ✅ Delete an entry
 exports.deleteThemeEntry = async (req, res) => {
   try {
     const { id } = req.params;
@@ -132,7 +127,7 @@ exports.deleteThemeEntry = async (req, res) => {
   }
 };
 
-// ✅ Delete an entire theme (removing its entries as well)
+// ✅ Delete a theme and its entries
 exports.deleteTheme = async (req, res) => {
   try {
     const { id } = req.params;
@@ -160,7 +155,7 @@ exports.getAllThemes = async (req, res) => {
   }
 };
 
-// ✅ Get a single theme by ID
+// ✅ Get theme by ID
 exports.getThemeById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -177,7 +172,7 @@ exports.getThemeById = async (req, res) => {
   }
 };
 
-
+// ✅ Update cover image URL only
 exports.updateThemeCoverImageUrl = async (req, res) => {
   try {
     const { themeId, coverImageUrl } = req.body;
@@ -196,4 +191,4 @@ exports.updateThemeCoverImageUrl = async (req, res) => {
     console.error("❌ Error updating cover image:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
-};
+}; // ✅ Last export ends cleanly
