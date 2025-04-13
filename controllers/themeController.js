@@ -176,3 +176,24 @@ exports.getThemeById = async (req, res) => {
     res.status(500).json({ message: "Server error while fetching theme." });
   }
 };
+
+
+exports.updateThemeCoverImageUrl = async (req, res) => {
+  try {
+    const { themeId, coverImageUrl } = req.body;
+
+    if (!themeId || !coverImageUrl) {
+      return res.status(400).json({ message: "Both themeId and coverImageUrl are required." });
+    }
+
+    const theme = await Theme.findByPk(themeId);
+    if (!theme) return res.status(404).json({ message: "Theme not found" });
+
+    await theme.update({ cover_image_url: coverImageUrl });
+
+    res.status(200).json({ message: "Cover image updated successfully", theme });
+  } catch (error) {
+    console.error("❌ Error updating cover image:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
