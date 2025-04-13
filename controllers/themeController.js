@@ -72,16 +72,16 @@ exports.createTheme = async (req, res) => {
 exports.updateTheme = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, specialRules, coverImageKey } = req.body;
+    const { name, description, coverImageUrl } = req.body;
 
     const theme = await Theme.findByPk(id);
     if (!theme) return res.status(404).json({ message: "Theme not found" });
 
-    const coverImageUrl = coverImageKey
-      ? `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${coverImageKey}`
-      : theme.cover_image_url;
-
-    await theme.update({ name, description, special_rules: specialRules, cover_image_url: coverImageUrl });
+    await theme.update({
+      name,
+      description,
+      cover_image_url: coverImageUrl,
+    });
 
     res.status(200).json({ message: "Theme updated successfully", theme });
   } catch (error) {
@@ -89,6 +89,7 @@ exports.updateTheme = async (req, res) => {
     res.status(500).json({ message: "Server error while updating theme." });
   }
 };
+
 
 
 // ✅ Add an in-house entry to a theme
