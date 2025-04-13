@@ -185,6 +185,25 @@ const updateContest = async (req, res) => {
   }
 };
 
+// ✅ Delete a contest by ID
+const deleteContest = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const contest = await Contest.findByPk(id);
+
+    if (!contest) {
+      return res.status(404).json({ error: "Contest not found" });
+    }
+
+    await contest.destroy();
+    res.status(200).json({ message: `Contest with ID ${id} deleted successfully` });
+  } catch (error) {
+    console.error("❌ Error deleting contest:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 
 
 // ✅ Export functions correctly
@@ -194,5 +213,6 @@ module.exports = {
   getLiveContests,
   getLiveAndUpcomingContests,
   createContest,
-  updateContest
+  updateContest,
+  deleteContest
 };

@@ -6,6 +6,7 @@ const {
   getContestById,
   getLiveAndUpcomingContests,
   updateContest,
+  deleteContest
 } = require("../controllers/contestController"); // ✅ Ensure correct import
 
 const router = express.Router();
@@ -14,18 +15,21 @@ const router = express.Router();
 router.get("/", getAllContests);
 
 // ✅ Fetch only live contests
-router.get("/live", getLiveContests); 
+router.get("/live", getLiveContests);
 
 // ✅ Fetch only live and upcoming contests
 router.get("/live-upcoming", getLiveAndUpcomingContests);
 
 // ✅ Fetch single contest
-router.get("/:id", getContestById); 
+router.get("/:id", getContestById);
 
 // ✅ Create a new contest
 router.post("/", createContest);
 
 // ✅ Update contest by ID
 router.put("/:id", updateContest);
+
+// ✅ Delete contest by ID
+router.delete("/:id", deleteContest);
 
 module.exports = router;
