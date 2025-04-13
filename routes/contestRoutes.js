@@ -5,6 +5,7 @@ const {
   getLiveContests,
   getContestById,
   getLiveAndUpcomingContests,
+  updateContest,
 } = require("../controllers/contestController"); // ✅ Ensure correct import
 
 const router = express.Router();
@@ -23,5 +24,8 @@ router.get("/:id", getContestById);
 
 // ✅ Create a new contest
 router.post("/", createContest);
+
+// ✅ Update contest by ID
+router.put("/:id", updateContest);
 
 module.exports = router;

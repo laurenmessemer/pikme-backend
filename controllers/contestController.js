@@ -153,6 +153,38 @@ const createContest = async (req, res) => {
   }
 };
 
+const updateContest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedFields = req.body;
+
+    const contest = await Contest.findByPk(id);
+
+    if (!contest) {
+      return res.status(404).json({ error: "Contest not found" });
+    }
+
+    await contest.update(updatedFields);
+
+    // Fetch updated contest with Theme info
+    const updatedContest = await Contest.findByPk(id, {
+      include: [
+        { model: User, attributes: ["username", "email"] },
+        {
+          model: Theme,
+          as: "Theme",
+          attributes: ["id", "name", "cover_image_url"],
+        },
+      ],
+    });
+
+    res.status(200).json(updatedContest);
+  } catch (error) {
+    console.error("❌ Error updating contest:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 
 
 // ✅ Export functions correctly
@@ -162,4 +194,5 @@ module.exports = {
   getLiveContests,
   getLiveAndUpcomingContests,
   createContest,
+  updateContest
 };
