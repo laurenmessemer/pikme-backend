@@ -13,40 +13,32 @@ const s3 = new AWS.S3({
 
 // ✅ Upload File to S3 using AWS credentials directly (no presigned link)
 exports.directUpload = async (req, res) => {
-  console.log("📥 Incoming request to /api/themes/direct-upload");
-
   try {
     if (!req.files || !req.files.coverImage) {
-      console.warn("⚠️ No file found in req.files:", req.files);
       return res.status(400).json({ message: "No image provided." });
     }
 
     const file = req.files.coverImage;
-    console.log("📁 File received:", file.name, file.mimetype, file.size);
+    const extension = path.extname(file.name);
+    const key = `themes/${uuidv4()}${extension}`;
 
-    const fileExtension = path.extname(file.name);
-    const fileKey = `themes/${uuidv4()}${fileExtension}`;
-
-    const uploadParams = {
+    const params = {
       Bucket: process.env.S3_BUCKET_NAME,
-      Key: fileKey,
-      Body: file.data,
-      ContentType: file.mimetype,
-      ACL: "public-read",
-      CacheControl: "public, max-age=31536000, immutable",
+      Key: key,
+      Body: file.data,                  // ✅ Raw binary data from express-fileupload
+      ContentType: file.mimetype,      // ✅ Automatically sets correct content-type
+      ACL: "public-read",              // ✅ So it's viewable by frontend users
     };
 
-    const result = await s3.upload(uploadParams).promise();
+    await s3.putObject(params).promise(); // ✅ S3 direct upload using PutObject
 
-    console.log("✅ Uploaded to S3:", result.Location);
-
-    res.status(200).json({ imageUrl: result.Location });
+    const imageUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    return res.status(200).json({ imageUrl });
   } catch (error) {
-    console.error("❌ Error uploading file:", error);
-    res.status(500).json({ message: "Upload failed", error: error.message });
+    console.error("❌ Error uploading with PutObject:", error);
+    return res.status(500).json({ message: "Upload failed", error: error.message });
   }
 };
-
 
 // ✅ Generate a Pre-Signed URL for S3 Upload
 exports.getUploadURL = async (req, res) => {
