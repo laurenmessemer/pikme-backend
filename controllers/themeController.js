@@ -91,7 +91,6 @@ exports.updateTheme = async (req, res) => {
 };
 
 
-
 // ✅ Add an in-house entry to a theme
 exports.addThemeEntry = async (req, res) => {
   try {
