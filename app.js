@@ -4,6 +4,7 @@ console.log("Bucket Name:", process.env.S3_BUCKET_NAME);  // Debugging step
 const express = require("express");
 const sequelize = require("./config/db");
 const path = require("path");
+const fileUpload = require("express-fileupload");
 require("./models"); // ✅ Ensures all models & associations are loaded
 
 
@@ -23,6 +24,7 @@ const referralRoutes = require("./routes/referralRoutes");
 const activityRoutes = require("./routes/activityRoutes");
 const reportRoutes = require("./routes/reportRoutes"); // ✅ Add Report Routes
 const contactRoutes = require("./routes/contactRoutes"); // ✅ Add Contact Routes
+
 
 const app = express();
 app.use(fileUpload()); 
