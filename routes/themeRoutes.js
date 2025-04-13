@@ -27,6 +27,12 @@ const {
 } = require("../controllers/themeController");
 
 router.use(fileUpload()); // ✅ Must come BEFORE routes using `req.files`
+console.log("✅ themeRoutes.js loaded");
+
+router.post("/direct-upload", (req, res, next) => {
+  console.log("📨 Hit /direct-upload route");
+  next();
+}, directUpload);
 
 // ✅ Routes
 router.get("/get-upload-url", getUploadURL);
