@@ -80,3 +80,39 @@ exports.determineWinners = async (req, res) => {
     res.status(500).json({ error: "Server error while determining winners." });
   }
 };
+
+exports.updateCompetition = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const competition = await Competition.findByPk(id);
+    if (!competition) {
+      return res.status(404).json({ error: "Competition not found" });
+    }
+
+    await competition.update(updates);
+    res.json({ success: true, competition });
+  } catch (error) {
+    console.error("❌ Error updating competition:", error);
+    res.status(500).json({ error: "Server error while updating competition." });
+  }
+};
+
+exports.deleteCompetition = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const competition = await Competition.findByPk(id);
+    if (!competition) {
+      return res.status(404).json({ error: "Competition not found" });
+    }
+
+    await competition.destroy();
+    res.json({ success: true, message: `Competition ${id} deleted.` });
+  } catch (error) {
+    console.error("❌ Error deleting competition:", error);
+    res.status(500).json({ error: "Server error while deleting competition." });
+  }
+};
+
