@@ -25,7 +25,7 @@ exports.getUploadURL = async (req, res) => {
     const params = {
       Bucket: process.env.S3_BUCKET_NAME,
       Key: fileKey,
-      Expires: 300, // 5 minutes
+      Expires: 300,
       ContentType: fileType,
       CacheControl: "public, max-age=31536000, immutable",
     };
@@ -43,6 +43,7 @@ exports.getUploadURL = async (req, res) => {
     res.status(500).json({ message: "Error generating upload URL", error: error.message });
   }
 };
+
 
 
 // ✅ Create Theme in Database
