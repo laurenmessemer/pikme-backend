@@ -24,10 +24,14 @@ const {
   updateThemeCoverImageUrl,
   uploadThemeCover,
   upload,
+  directUpload,
 } = require("../controllers/themeController");
 
 // ✅ AWS S3 Pre-signed URL Route
 router.get("/get-upload-url", getUploadURL);
+router.post("/direct-upload", directUpload); // ✅ NEW ROUTE
+router.use(fileUpload()); // Enable req.files
+
 
 // ✅ Theme CRUD Routes
 router.post("/create", createTheme);

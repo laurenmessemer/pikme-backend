@@ -11,6 +11,35 @@ const s3 = new AWS.S3({
   region: process.env.AWS_REGION,
 });
 
+// ✅ Upload File to S3 using AWS credentials directly (no presigned link)
+exports.directUpload = async (req, res) => {
+  try {
+    if (!req.files || !req.files.coverImage) {
+      return res.status(400).json({ message: "No image provided." });
+    }
+
+    const file = req.files.coverImage;
+    const fileExtension = path.extname(file.name);
+    const fileKey = `themes/${uuidv4()}${fileExtension}`;
+
+    const uploadParams = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: fileKey,
+      Body: file.data,
+      ContentType: file.mimetype,
+      ACL: "public-read",
+      CacheControl: "public, max-age=31536000, immutable",
+    };
+
+    const result = await s3.upload(uploadParams).promise();
+
+    res.status(200).json({ imageUrl: result.Location });
+  } catch (error) {
+    console.error("❌ Error uploading file:", error);
+    res.status(500).json({ message: "Upload failed", error: error.message });
+  }
+};
+
 // ✅ Generate a Pre-Signed URL for S3 Upload
 exports.getUploadURL = async (req, res) => {
   try {
