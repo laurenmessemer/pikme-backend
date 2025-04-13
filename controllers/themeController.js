@@ -192,3 +192,31 @@ exports.updateThemeCoverImageUrl = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 }; // ✅ Last export ends cleanly
+
+exports.uploadCoverImage = async (req, res) => {
+  try {
+    const { fileName, fileBuffer, fileType } = req.body;
+
+    if (!fileName || !fileBuffer || !fileType) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    const buffer = Buffer.from(fileBuffer, "base64");
+    const fileKey = `themes/${fileName}`;
+
+    const uploadParams = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: fileKey,
+      Body: buffer,
+      ContentType: fileType,
+      ACL: "public-read",
+      CacheControl: "public, max-age=31536000, immutable",
+    };
+
+    const result = await s3.upload(uploadParams).promise();
+    res.status(200).json({ imageUrl: result.Location });
+  } catch (error) {
+    console.error("❌ Failed to upload image to S3:", error);
+    res.status(500).json({ message: "Image upload failed", error: error.message });
+  }
+};

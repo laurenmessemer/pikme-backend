@@ -22,6 +22,7 @@ const {
   addThemeEntry,
   deleteThemeEntry,
   updateThemeCoverImageUrl,
+  uploadCoverImage,
 } = require("../controllers/themeController");
 
 // ✅ AWS S3 Pre-signed URL Route
@@ -36,5 +37,6 @@ router.delete("/:id", deleteTheme);
 router.post("/:id/entries", addThemeEntry);
 router.delete("/entries/:id", deleteThemeEntry);
 router.put("/update-cover", updateThemeCoverImageUrl);
+router.post("/upload-cover", uploadCoverImage); // ✅ Add this route
 
 module.exports = router;
