@@ -127,8 +127,6 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-
-
 // ✅ Login User or Admin
 exports.loginUser = async (req, res) => {
   try {
@@ -136,7 +134,7 @@ exports.loginUser = async (req, res) => {
 
     const user = await User.findOne({
       where: { email },
-      attributes: ["id", "username", "email", "role", "password_hash"],
+      attributes: ["id", "username", "email", "role", "password_hash", "is_verified",],
     });
 
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
