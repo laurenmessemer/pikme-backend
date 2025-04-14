@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
           autoIncrement: true,
           primaryKey: true,
         },
-        name: {  // ✅ Renamed from "theme_name" to "name"
+        name: {  
             type: DataTypes.STRING,
             allowNull: false,
             unique: true,
