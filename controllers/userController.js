@@ -22,8 +22,6 @@ const getUsers = async (req, res) => {
         ],
       });
   
-      console.log("🧪 Raw user keys:", Object.keys(users[0].dataValues));
-  
       const formattedUsers = users.map((user) => ({
         id: user.id,
         username: user.username,
@@ -44,44 +42,59 @@ const getUsers = async (req, res) => {
   };
   
   
-const updateUser = async (req, res) => {
+  const updateUser = async (req, res) => {
     const { id } = req.params;
-    const { username, email, role, token_balance } = req.body;
-
+    const {
+      username,
+      email,
+      role,
+      token_balance,
+      referred_by_id,
+      referral_code,
+      referral_bonus_awarded,
+      is_verified,
+      verification_token,
+    } = req.body;
+  
     try {
-        console.log(`🔄 Updating user ${id}...`);
-
-        // ✅ Ensure user exists
-        const user = await User.findByPk(id, {
-            include: [{ model: Wallet }],
-        });
-
-        if (!user) {
-            return res.status(404).json({ message: "User not found." });
-        }
-
-        // ✅ Update fields
-        user.username = username ?? user.username;
-        user.email = email ?? user.email;
-        user.role = role ?? user.role;
-
-        // ✅ Update token balance (if wallet exists)
-        if (user.Wallet) {
-            user.Wallet.token_balance = token_balance ?? user.Wallet.token_balance;
-            await user.Wallet.save();
-        } else {
-            await Wallet.create({ user_id: id, token_balance: token_balance ?? 0 });
-        }
-
-        await user.save(); // ✅ Save user changes
-
-        console.log(`✅ User ${id} updated successfully.`);
-        res.json({ message: "User updated successfully.", user });
+      console.log(`🔄 Updating user ${id}...`);
+  
+      const user = await User.findByPk(id, {
+        include: [{ model: Wallet }],
+      });
+  
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+  
+      // ✅ Update all user fields conditionally
+      user.username = username ?? user.username;
+      user.email = email ?? user.email;
+      user.role = role ?? user.role;
+      user.referred_by_id = referred_by_id ?? user.referred_by_id;
+      user.referral_code = referral_code ?? user.referral_code;
+      user.referral_bonus_awarded = referral_bonus_awarded ?? user.referral_bonus_awarded;
+      user.is_verified = is_verified ?? user.is_verified;
+      user.verification_token = verification_token ?? user.verification_token;
+  
+      // ✅ Update token balance in Wallet
+      if (user.Wallet) {
+        user.Wallet.token_balance = token_balance ?? user.Wallet.token_balance;
+        await user.Wallet.save();
+      } else {
+        await Wallet.create({ user_id: id, token_balance: token_balance ?? 0 });
+      }
+  
+      await user.save();
+  
+      console.log(`✅ User ${id} updated successfully.`);
+      res.json({ message: "User updated successfully.", user });
     } catch (error) {
-        console.error("❌ Error updating user:", error);
-        res.status(500).json({ message: "Failed to update user.", error: error.message });
+      console.error("❌ Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user.", error: error.message });
     }
-};
+  };
+  
 
 const deleteUser = async (req, res) => {
     const { id } = req.params;
