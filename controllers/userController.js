@@ -9,10 +9,10 @@ const getUsers = async (req, res) => {
           "username",
           "email",
           "role",
-          "referred_by_id",
-          "referral_code",
-          "referral_bonus_awarded",
-          "is_verified",
+          "referredById",
+          "referralCode",
+          "referralBonusAwarded",
+          "isVerified",
         ],
         include: [
           {
@@ -21,9 +21,8 @@ const getUsers = async (req, res) => {
           },
         ],
       });
-
-      console.log("🧪 Sample user response:", JSON.stringify(users[0], null, 2));
-
+  
+      console.log("🧪 Raw user keys:", Object.keys(users[0].dataValues));
   
       const formattedUsers = users.map((user) => ({
         id: user.id,
@@ -36,7 +35,6 @@ const getUsers = async (req, res) => {
         referral_bonus_awarded: user.referralBonusAwarded,
         is_verified: user.isVerified,
       }));
-      
   
       res.json(formattedUsers);
     } catch (error) {
@@ -44,7 +42,7 @@ const getUsers = async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
     }
   };
-
+  
 const updateUser = async (req, res) => {
     const { id } = req.params;
     const { username, email, role, token_balance } = req.body;
