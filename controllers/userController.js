@@ -3,30 +3,44 @@ const { User, Wallet } = require("../models");
 // ✅ Enhanced Get Users with More Debugging
 const getUsers = async (req, res) => {
     try {
-        const users = await User.findAll({
-            attributes: ["id", "username", "email", "role"], // Remove "referred_by_id"
-            include: [
-                {
-                    model: Wallet,
-                    attributes: ["token_balance"],
-                },
-            ],
-        });
-
-        const formattedUsers = users.map((user) => ({
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            token_balance: user.Wallet?.token_balance || 0, 
-        }));
-
-        res.json(formattedUsers);
+      const users = await User.findAll({
+        attributes: [
+          "id",
+          "username",
+          "email",
+          "role",
+          "referred_by_id",
+          "referral_code",
+          "referral_bonus_awarded",
+          "is_verified",
+        ],
+        include: [
+          {
+            model: Wallet,
+            attributes: ["token_balance"],
+          },
+        ],
+      });
+  
+      const formattedUsers = users.map((user) => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        token_balance: user.Wallet?.token_balance || 0,
+        referred_by_id: user.referred_by_id,
+        referral_code: user.referral_code,
+        referral_bonus_awarded: user.referral_bonus_awarded,
+        is_verified: user.is_verified,
+      }));
+  
+      res.json(formattedUsers);
     } catch (error) {
-        console.error("❌ Error fetching users:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+      console.error("❌ Error fetching users:", error);
+      res.status(500).json({ error: "Internal Server Error" });
     }
-};
+  };
+  
 
 const updateUser = async (req, res) => {
     const { id } = req.params;
