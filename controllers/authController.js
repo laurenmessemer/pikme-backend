@@ -134,15 +134,27 @@ exports.loginUser = async (req, res) => {
 
     const user = await User.findOne({
       where: { email },
-      attributes: ["id", "username", "email", "role", "password_hash", "is_verified",],
+      attributes: [
+        "id",
+        "username",
+        "email",
+        "role",
+        "password_hash",
+        "is_verified",
+        "suspended"
+      ],
     });
 
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-    
+
     if (!user.is_verified) {
       return res.status(403).json({ message: "Please verify your email before logging in." });
+    }
+
+    if (user.suspended) {
+      return res.status(403).json({ message: "Your account has been suspended." });
     }
 
     const token = generateToken(user);
@@ -161,6 +173,7 @@ exports.loginUser = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 // ✅ Get Logged-in User Profile
 exports.getUserProfile = async (req, res) => {
