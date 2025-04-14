@@ -31,11 +31,12 @@ const getUsers = async (req, res) => {
         email: user.email,
         role: user.role,
         token_balance: user.Wallet?.token_balance || 0,
-        referred_by_id: user.referred_by_id,
-        referral_code: user.referral_code,
-        referral_bonus_awarded: user.referral_bonus_awarded,
-        is_verified: user.is_verified,
+        referred_by_id: user.referredById,
+        referral_code: user.referralCode,
+        referral_bonus_awarded: user.referralBonusAwarded,
+        is_verified: user.isVerified,
       }));
+      
   
       res.json(formattedUsers);
     } catch (error) {
