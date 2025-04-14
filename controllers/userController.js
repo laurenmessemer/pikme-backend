@@ -10,9 +10,9 @@ const getUsers = async (req, res) => {
           "email",
           "role",
           "referred_by_id",
-          "referralCode",
-          "referralBonusAwarded",
-          "isVerified",
+          "referral_code",
+          "referral_bonus_awarded",
+          "is_verified",
         ],
         include: [
           {
@@ -31,9 +31,9 @@ const getUsers = async (req, res) => {
         role: user.role,
         token_balance: user.Wallet?.token_balance || 0,
         referred_by_id: user.referred_by_id,
-        referral_code: user.referralCode,
-        referral_bonus_awarded: user.referralBonusAwarded,
-        is_verified: user.isVerified,
+        referral_code: user.referral_code,
+        referral_bonus_awarded: user.referral_bonus_awarded,
+        is_verified: user.is_verified,
       }));
   
       res.json(formattedUsers);
@@ -42,6 +42,7 @@ const getUsers = async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
     }
   };
+  
   
 const updateUser = async (req, res) => {
     const { id } = req.params;
