@@ -21,6 +21,9 @@ const getUsers = async (req, res) => {
           },
         ],
       });
+
+      console.log("🧪 Sample user response:", JSON.stringify(users[0], null, 2));
+
   
       const formattedUsers = users.map((user) => ({
         id: user.id,
@@ -40,7 +43,6 @@ const getUsers = async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
     }
   };
-  
 
 const updateUser = async (req, res) => {
     const { id } = req.params;
