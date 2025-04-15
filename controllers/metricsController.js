@@ -92,88 +92,134 @@ try {
 }
 };
 
-exports.getCompetingUserPercentage = async (req, res) => {
-    const dateFilters = getDateFilters();
-    const results = {};
-  
-    try {
-      const totalUsers = await User.count({
-        where: { role: "participant", suspended: false },
-      });
-  
-      for (const [interval, filter] of Object.entries(dateFilters)) {
-        // Pull competitions created within the time interval
-        const competitions = await Competition.findAll({
-          where: {
-            ...filter, // Apply to Competition.createdAt
-          },
-          include: {
-            model: Contest,
-            where: {
-              status: { [Op.in]: ["Live", "Upcoming", "Complete"] },
-            },
-          },
-        });
-  
-        const competingUserIds = new Set();
-        competitions.forEach((comp) => {
-          if (comp.user1_id) competingUserIds.add(comp.user1_id);
-          if (comp.user2_id) competingUserIds.add(comp.user2_id);
-        });
-  
-        const count = competingUserIds.size;
-        const percent = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
-  
-        results[interval] = {
-          competingUsers: count,
-          totalUsers,
-          percentage: percent,
-        };
-      }
-  
-      res.json(results);
-    } catch (err) {
-      console.error("❌ Error in getCompetingUserPercentage:", err);
-      res.status(500).json({ message: "Internal Server Error", error: err.message });
-    }
-};
+exports.getIntervalBasedCompetingUsers = async (req, res) => {
+  const dateFilters = getDateFilters();
+  const results = {};
 
-exports.getCurrentlyActiveCompetingUsers = async (req, res) => {
-    try {
-      const totalUsers = await User.count({
-        where: {
-          role: "participant",
-          suspended: false,
-        },
-      });
-  
-      const activeCompetitions = await Competition.findAll({
+  try {
+    const totalUsers = await User.count({
+      where: { role: "participant", suspended: false },
+    });
+
+    for (const [interval, filter] of Object.entries(dateFilters)) {
+      const competitions = await Competition.findAll({
         include: {
           model: Contest,
           where: {
             status: {
               [Op.in]: ["Live", "Upcoming"],
             },
+            ...filter, // Applies to contest's createdAt (you can change this to voting_live_date if needed)
           },
         },
       });
-  
+
+      // Extract unique users who were in these competitions
       const uniqueUserIds = new Set();
-      activeCompetitions.forEach((comp) => {
+      competitions.forEach((comp) => {
         if (comp.user1_id) uniqueUserIds.add(comp.user1_id);
         if (comp.user2_id) uniqueUserIds.add(comp.user2_id);
       });
-  
+
       const count = uniqueUserIds.size;
-      const percentage = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
-  
-      res.json({
-        activeCompetingUsers: count,
+      const percent = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
+
+      results[interval] = {
+        competingUsers: count,
         totalUsers,
-        percentage,
-      });
-    } catch (err) {
-      console.error("❌ Error in getCurrentlyActiveCompetingUsers:", err);
-      res.status(500).json({ message: "Internal Server Error", error: err.message });
+        percentage: percent,
+      };
     }
+
+    res.json(results);
+  } catch (err) {
+    console.error("❌ Error in getIntervalBasedCompetingUsers:", err);
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
 };
+
+// exports.getCompetingUserPercentage = async (req, res) => {
+//     const dateFilters = getDateFilters();
+//     const results = {};
+  
+//     try {
+//       const totalUsers = await User.count({
+//         where: { role: "participant", suspended: false },
+//       });
+  
+//       for (const [interval, filter] of Object.entries(dateFilters)) {
+//         // Pull competitions created within the time interval
+//         const competitions = await Competition.findAll({
+//           where: {
+//             ...filter, // Apply to Competition.createdAt
+//           },
+//           include: {
+//             model: Contest,
+//             where: {
+//               status: { [Op.in]: ["Live", "Upcoming", "Complete"] },
+//             },
+//           },
+//         });
+  
+//         const competingUserIds = new Set();
+//         competitions.forEach((comp) => {
+//           if (comp.user1_id) competingUserIds.add(comp.user1_id);
+//           if (comp.user2_id) competingUserIds.add(comp.user2_id);
+//         });
+  
+//         const count = competingUserIds.size;
+//         const percent = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
+  
+//         results[interval] = {
+//           competingUsers: count,
+//           totalUsers,
+//           percentage: percent,
+//         };
+//       }
+  
+//       res.json(results);
+//     } catch (err) {
+//       console.error("❌ Error in getCompetingUserPercentage:", err);
+//       res.status(500).json({ message: "Internal Server Error", error: err.message });
+//     }
+// };
+
+// exports.getCurrentlyActiveCompetingUsers = async (req, res) => {
+//     try {
+//       const totalUsers = await User.count({
+//         where: {
+//           role: "participant",
+//           suspended: false,
+//         },
+//       });
+  
+//       const activeCompetitions = await Competition.findAll({
+//         include: {
+//           model: Contest,
+//           where: {
+//             status: {
+//               [Op.in]: ["Live", "Upcoming"],
+//             },
+//           },
+//         },
+//       });
+  
+//       const uniqueUserIds = new Set();
+//       activeCompetitions.forEach((comp) => {
+//         if (comp.user1_id) uniqueUserIds.add(comp.user1_id);
+//         if (comp.user2_id) uniqueUserIds.add(comp.user2_id);
+//       });
+  
+//       const count = uniqueUserIds.size;
+//       const percentage = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
+  
+//       res.json({
+//         activeCompetingUsers: count,
+//         totalUsers,
+//         percentage,
+//       });
+//     } catch (err) {
+//       console.error("❌ Error in getCurrentlyActiveCompetingUsers:", err);
+//       res.status(500).json({ message: "Internal Server Error", error: err.message });
+//     }
+// };
