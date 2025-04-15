@@ -1,4 +1,4 @@
-const { Vote, User, Competition } = require("../models");
+const { Vote, User, Competition, Contest } = require("../models");
 const { getDateFilters } = require("../utils/metricsUtils");
 const { Op, Sequelize } = require("sequelize");
 
