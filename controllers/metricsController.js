@@ -93,45 +93,52 @@ try {
 };
 
 exports.getCompetingUserPercentage = async (req, res) => {
+    const dateFilters = getDateFilters();
+    const results = {};
+  
     try {
-      // ✅ Total users (excluding suspended accounts)
+      // Total participant users (active)
       const totalUsers = await User.count({
         where: {
           role: "participant",
-          suspended: false
-        }
+          suspended: false,
+        },
       });
   
-      // ✅ Get unique user IDs from active competitions (user1 and user2)
-      const user1s = await Competition.findAll({
-        attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("user1_id")), "user_id"]],
-        where: { status: { [Op.not]: "Complete" }, user1_id: { [Op.ne]: null } },
-        raw: true
-      });
+      for (const [interval, filter] of Object.entries(dateFilters)) {
+        // Find all competitions tied to contests within the date filter
+        const competitions = await Competition.findAll({
+          include: {
+            model: Contest,
+            where: {
+              ...filter,
+              status: {
+                [Op.in]: ["Live", "Upcoming", "Complete"], // ✅ all valid contest states
+              },
+            },
+          },
+        });
   
-      const user2s = await Competition.findAll({
-        attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("user2_id")), "user_id"]],
-        where: { status: { [Op.not]: "Complete" }, user2_id: { [Op.ne]: null } },
-        raw: true
-      });
+        // Extract unique user IDs from user1_id and user2_id
+        const competingUserIds = new Set();
+        competitions.forEach((comp) => {
+          if (comp.user1_id) competingUserIds.add(comp.user1_id);
+          if (comp.user2_id) competingUserIds.add(comp.user2_id);
+        });
   
-      // ✅ Merge and dedupe user IDs
-      const uniqueUserIds = new Set([
-        ...user1s.map(u => u.user_id),
-        ...user2s.map(u => u.user_id)
-      ]);
+        const count = competingUserIds.size;
+        const percent = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
   
-      const numCompeting = uniqueUserIds.size;
-      const percentage = totalUsers > 0 ? ((numCompeting / totalUsers) * 100).toFixed(2) : "0.00";
+        results[interval] = {
+          competingUsers: count,
+          totalUsers,
+          percentage: percent,
+        };
+      }
   
-      res.json({
-        totalUsers,
-        competingUsers: numCompeting,
-        percentage
-      });
-  
+      res.json(results);
     } catch (err) {
       console.error("❌ Error in getCompetingUserPercentage:", err);
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
-};
+  };
