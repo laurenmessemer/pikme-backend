@@ -137,3 +137,43 @@ exports.getCompetingUserPercentage = async (req, res) => {
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
 };
+
+exports.getCurrentlyActiveCompetingUsers = async (req, res) => {
+    try {
+      const totalUsers = await User.count({
+        where: {
+          role: "participant",
+          suspended: false,
+        },
+      });
+  
+      const activeCompetitions = await Competition.findAll({
+        include: {
+          model: Contest,
+          where: {
+            status: {
+              [Op.in]: ["Live", "Upcoming"],
+            },
+          },
+        },
+      });
+  
+      const uniqueUserIds = new Set();
+      activeCompetitions.forEach((comp) => {
+        if (comp.user1_id) uniqueUserIds.add(comp.user1_id);
+        if (comp.user2_id) uniqueUserIds.add(comp.user2_id);
+      });
+  
+      const count = uniqueUserIds.size;
+      const percentage = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
+  
+      res.json({
+        activeCompetingUsers: count,
+        totalUsers,
+        percentage,
+      });
+    } catch (err) {
+      console.error("❌ Error in getCurrentlyActiveCompetingUsers:", err);
+      res.status(500).json({ message: "Internal Server Error", error: err.message });
+    }
+};

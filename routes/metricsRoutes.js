@@ -5,6 +5,7 @@ const { getVoteMetrics, getAvgVotesPerUser, getVotingUserPercentage, getCompetin
 router.get("/votes/average", getAvgVotesPerUser);
 router.get("/votes/voting-user-percentage", getVotingUserPercentage);
 router.get("/votes/competing-user-percentage", getCompetingUserPercentage);
+router.get("/votes/currently-active-competing-users", getCurrentlyActiveCompetingUsers);
 router.get("/votes/:userId", getVoteMetrics);
 
 
