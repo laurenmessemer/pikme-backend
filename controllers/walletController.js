@@ -29,8 +29,6 @@ const getWallet = async (req, res) => {
       (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
     );
 
-    console.log("🏦 Wallet transaction history sent to frontend:", sortedTransactions);
-
     return res.json({
       balance: wallet.token_balance,
       prizeHistory: sortedTransactions,
