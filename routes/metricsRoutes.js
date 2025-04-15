@@ -4,6 +4,7 @@ const { getVoteMetrics, getAvgVotesPerUser, getVotingUserPercentage } = require(
 
 router.get("/votes/average", getAvgVotesPerUser);
 router.get("/votes/voting-user-percentage", getVotingUserPercentage);
+router.get("/votes/competing-user-percentage", getCompetingUserPercentage);
 router.get("/votes/:userId", getVoteMetrics);
 
 

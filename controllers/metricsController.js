@@ -1,4 +1,4 @@
-const { Vote, User } = require("../models");
+const { Vote, User, Competition } = require("../models");
 const { getDateFilters } = require("../utils/metricsUtils");
 const { Op, Sequelize } = require("sequelize");
 
@@ -53,7 +53,7 @@ exports.getAvgVotesPerUser = async (req, res) => {
       console.error("❌ Error in getAvgVotesPerUser:", err);
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
-  };
+};
 
 exports.getVotingUserPercentage = async (req, res) => {
 const dateFilters = getDateFilters();
@@ -90,4 +90,48 @@ try {
     console.error("❌ Error in getVotingUserPercentage:", err);
     res.status(500).json({ message: "Internal Server Error", error: err.message });
 }
+};
+
+exports.getCompetingUserPercentage = async (req, res) => {
+    try {
+      // ✅ Total users (excluding suspended accounts)
+      const totalUsers = await User.count({
+        where: {
+          role: "participant",
+          suspended: false
+        }
+      });
+  
+      // ✅ Get unique user IDs from active competitions (user1 and user2)
+      const user1s = await Competition.findAll({
+        attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("user1_id")), "user_id"]],
+        where: { status: { [Op.not]: "Complete" }, user1_id: { [Op.ne]: null } },
+        raw: true
+      });
+  
+      const user2s = await Competition.findAll({
+        attributes: [[Sequelize.fn("DISTINCT", Sequelize.col("user2_id")), "user_id"]],
+        where: { status: { [Op.not]: "Complete" }, user2_id: { [Op.ne]: null } },
+        raw: true
+      });
+  
+      // ✅ Merge and dedupe user IDs
+      const uniqueUserIds = new Set([
+        ...user1s.map(u => u.user_id),
+        ...user2s.map(u => u.user_id)
+      ]);
+  
+      const numCompeting = uniqueUserIds.size;
+      const percentage = totalUsers > 0 ? ((numCompeting / totalUsers) * 100).toFixed(2) : "0.00";
+  
+      res.json({
+        totalUsers,
+        competingUsers: numCompeting,
+        percentage
+      });
+  
+    } catch (err) {
+      console.error("❌ Error in getCompetingUserPercentage:", err);
+      res.status(500).json({ message: "Internal Server Error", error: err.message });
+    }
 };
