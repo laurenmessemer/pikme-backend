@@ -97,29 +97,24 @@ exports.getCompetingUserPercentage = async (req, res) => {
     const results = {};
   
     try {
-      // Total participant users (active)
       const totalUsers = await User.count({
-        where: {
-          role: "participant",
-          suspended: false,
-        },
+        where: { role: "participant", suspended: false },
       });
   
       for (const [interval, filter] of Object.entries(dateFilters)) {
-        // Find all competitions tied to contests within the date filter
+        // Pull competitions created within the time interval
         const competitions = await Competition.findAll({
+          where: {
+            ...filter, // Apply to Competition.createdAt
+          },
           include: {
             model: Contest,
             where: {
-              ...filter,
-              status: {
-                [Op.in]: ["Live", "Upcoming", "Complete"], // ✅ all valid contest states
-              },
+              status: { [Op.in]: ["Live", "Upcoming", "Complete"] },
             },
           },
         });
   
-        // Extract unique user IDs from user1_id and user2_id
         const competingUserIds = new Set();
         competitions.forEach((comp) => {
           if (comp.user1_id) competingUserIds.add(comp.user1_id);
@@ -141,4 +136,4 @@ exports.getCompetingUserPercentage = async (req, res) => {
       console.error("❌ Error in getCompetingUserPercentage:", err);
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
-  };
+};
