@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getVoteMetrics, getAvgVotesPerUser, getVotingUserPercentage, getCompetingUserPercentage } = require("../controllers/metricsController");
+const { getVoteMetrics, getAvgVotesPerUser, getVotingUserPercentage, getCompetingUserPercentage, getCurrentlyActiveCompetingUsers } = require("../controllers/metricsController");
 
 router.get("/votes/average", getAvgVotesPerUser);
 router.get("/votes/voting-user-percentage", getVotingUserPercentage);
