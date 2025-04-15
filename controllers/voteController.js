@@ -1,4 +1,4 @@
-const { Competition, Contest, Theme } = require("../models");
+const { Competition, Contest, Theme, Vote } = require("../models");
 const { Op, Sequelize } = require("sequelize");
 
 // ✅ Fetch active competitions where both images exist
