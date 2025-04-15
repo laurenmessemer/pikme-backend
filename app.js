@@ -1,16 +1,16 @@
 require("dotenv").config();
 console.log("DB HOST:", process.env.DB_HOST);
-console.log("Bucket Name:", process.env.S3_BUCKET_NAME);  // Debugging step
+console.log("Bucket Name:", process.env.S3_BUCKET_NAME); 
 const express = require("express");
 const sequelize = require("./config/db");
 const path = require("path");
 const fileUpload = require("express-fileupload");
-require("./models"); // ✅ Ensures all models & associations are loaded
+require("./models");
 
 
 // ✅ Import Routes
 const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes"); // ✅ Add User Routes
+const userRoutes = require("./routes/userRoutes"); 
 const themeRoutes = require("./routes/themeRoutes"); 
 const contestRoutes = require("./routes/contestRoutes");
 const competitionEntryRoutes = require("./routes/competitionEntryRoutes");
@@ -22,9 +22,9 @@ const adminCompetitionRoutes = require("./routes/adminCompetitionRoutes");
 const webhookRoutes = require("./webhook");
 const referralRoutes = require("./routes/referralRoutes");
 const activityRoutes = require("./routes/activityRoutes");
-const reportRoutes = require("./routes/reportRoutes"); // ✅ Add Report Routes
-const contactRoutes = require("./routes/contactRoutes"); // ✅ Add Contact Routes
-
+const reportRoutes = require("./routes/reportRoutes"); 
+const contactRoutes = require("./routes/contactRoutes"); 
+const metricsRoutes = require("./routes/metricsRoutes"); 
 
 const app = express();
 app.use(fileUpload()); 
@@ -100,6 +100,7 @@ app.use("/api/referral", referralRoutes);
 app.use("/api/activity", activityRoutes);
 app.use("/api/reports", reportRoutes); 
 app.use("/api", contactRoutes);
+app.use("/api/metrics", metricsRoutes);
 
 
 

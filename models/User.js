@@ -66,6 +66,7 @@ module.exports = (sequelize, DataTypes) => {
 
     User.hasMany(models.Entry, { foreignKey: "user_id", onDelete: "CASCADE" });
     User.hasMany(models.Contest, { foreignKey: "creator_id", onDelete: "CASCADE" });
+    User.hasMany(models.Vote, { foreignKey: "voter_id", onDelete: "CASCADE" });
 
     User.hasMany(models.Competition, { foreignKey: "user1_id", onDelete: "CASCADE" });
     User.hasMany(models.Competition, { foreignKey: "user2_id", onDelete: "CASCADE" });

@@ -83,6 +83,8 @@ module.exports = (sequelize, DataTypes) => {
     Competition.belongsTo(models.User, { as: "User1", foreignKey: "user1_id", onDelete: "CASCADE" });
     Competition.belongsTo(models.User, { as: "User2", foreignKey: "user2_id", onDelete: "CASCADE" });
     Competition.hasMany(models.Report, { foreignKey: "competition_id" });
+    Competition.hasMany(models.Vote, { foreignKey: "competition_id", onDelete: "CASCADE" });
+
   };
 
   return Competition;

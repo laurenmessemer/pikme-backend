@@ -174,7 +174,6 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-
 // ✅ Get Logged-in User Profile
 exports.getUserProfile = async (req, res) => {
   try {
