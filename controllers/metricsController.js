@@ -1,4 +1,4 @@
-const { Vote } = require("../models");
+const { Vote, User } = require("../models");
 const { getDateFilters } = require("../utils/metricsUtils");
 const { Op, Sequelize } = require("sequelize");
 
@@ -54,3 +54,40 @@ exports.getAvgVotesPerUser = async (req, res) => {
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
   };
+
+exports.getVotingUserPercentage = async (req, res) => {
+const dateFilters = getDateFilters();
+const result = {};
+
+try {
+    // Total user count (can adjust to exclude suspended users if desired)
+    const totalUsers = await User.count({
+    where: {
+        role: "participant", // or any roles you want to include
+        suspended: false
+    }
+    });
+
+    for (const [interval, filter] of Object.entries(dateFilters)) {
+    // Count distinct voters in that interval
+    const voters = await Vote.count({
+        where: { ...filter },
+        distinct: true,
+        col: "voter_id"
+    });
+
+    const percentage = totalUsers > 0 ? ((voters / totalUsers) * 100).toFixed(2) : "0.00";
+
+    result[interval] = {
+        uniqueVoters: voters,
+        totalUsers,
+        votingUserPercentage: percentage
+    };
+    }
+
+    res.json(result);
+} catch (err) {
+    console.error("❌ Error in getVotingUserPercentage:", err);
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+}
+};
