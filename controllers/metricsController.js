@@ -93,52 +93,75 @@ try {
 };
 
 exports.getIntervalBasedCompetingUsers = async (req, res) => {
-  const dateFilters = getDateFilters();
-  const results = {};
-
-  try {
-    const totalUsers = await User.count({
-      where: { role: "participant", suspended: false },
-    });
-
-    for (const [interval, filter] of Object.entries(dateFilters)) {
-      const competitions = await Competition.findAll({
-        include: {
-          model: Contest,
-          where: {
-            status: {
-              [Op.in]: ["Live", "Upcoming"],
+    const { User, Competition, Contest } = require("../models");
+    const { getDateFilters } = require("../utils/metricsUtils");
+    const { Op } = require("sequelize");
+  
+    const dateFilters = getDateFilters();
+    const results = {};
+  
+    try {
+      const totalUsers = await User.count({
+        where: { role: "participant", suspended: false },
+      });
+  
+      for (const [interval, filter] of Object.entries(dateFilters)) {
+        const start = filter.createdAt[Op.gte];
+        const end = filter.createdAt[Op.lte];
+  
+        const competitions = await Competition.findAll({
+          include: {
+            model: Contest,
+            where: {
+              status: {
+                [Op.in]: ["Live", "Upcoming"],
+              },
+              // Contest is considered "active" in the interval if its date range overlaps the interval
+              [Op.or]: [
+                {
+                  contest_live_date: {
+                    [Op.between]: [start, end],
+                  },
+                },
+                {
+                  voting_deadline: {
+                    [Op.between]: [start, end],
+                  },
+                },
+                {
+                  contest_live_date: { [Op.lte]: end },
+                  voting_deadline: { [Op.gte]: start },
+                },
+              ],
             },
-            ...filter, // Applies to contest's createdAt (you can change this to voting_live_date if needed)
           },
-        },
-      });
-
-      // Extract unique users who were in these competitions
-      const uniqueUserIds = new Set();
-      competitions.forEach((comp) => {
-        if (comp.user1_id) uniqueUserIds.add(comp.user1_id);
-        if (comp.user2_id) uniqueUserIds.add(comp.user2_id);
-      });
-
-      const count = uniqueUserIds.size;
-      const percent = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
-
-      results[interval] = {
-        competingUsers: count,
-        totalUsers,
-        percentage: percent,
-      };
+        });
+  
+        const uniqueUserIds = new Set();
+        competitions.forEach((comp) => {
+          if (comp.user1_id) uniqueUserIds.add(comp.user1_id);
+          if (comp.user2_id) uniqueUserIds.add(comp.user2_id);
+        });
+  
+        const count = uniqueUserIds.size;
+        const percent = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
+  
+        results[interval] = {
+          competingUsers: count,
+          totalUsers,
+          percentage: percent,
+        };
+      }
+  
+      res.json(results);
+    } catch (err) {
+      console.error("❌ Error in getIntervalBasedCompetingUsers:", err);
+      res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
+  };
+  
 
-    res.json(results);
-  } catch (err) {
-    console.error("❌ Error in getIntervalBasedCompetingUsers:", err);
-    res.status(500).json({ message: "Internal Server Error", error: err.message });
-  }
-};
 
-// exports.getCompetingUserPercentage = async (req, res) => {
 //     const dateFilters = getDateFilters();
 //     const results = {};
   
