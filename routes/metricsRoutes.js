@@ -4,7 +4,7 @@ const metricsController = require("../controllers/metricsController");
 
 router.get("/votes/average", metricsController.getAvgVotesPerUser);
 router.get("/votes/voting-user-percentage", metricsController.getVotingUserPercentage);
-router.get("/votes/competing-users-by-interval", metricsController.getIntervalBasedCompetingUsers); // ✅ interval-based competing data
+router.get("/votes/current-competing-users", metricsController.getCurrentCompetingUsers);
 router.get("/votes/:userId", metricsController.getVoteMetrics);
 
 module.exports = router;

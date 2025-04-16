@@ -92,85 +92,59 @@ try {
 }
 };
 
-exports.getIntervalBasedCompetingUsers = async (req, res) => {
-    const dateFilters = getDateFilters();
-    const results = {};
-  
-    try {
-      const totalUsers = await User.count({
-        where: { role: "participant", suspended: false },
+exports.getCurrentCompetingUsers = async (req, res) => {
+  try {
+    // Get total eligible users
+    const totalUsers = await User.count({
+      where: {
+        role: "participant",
+        suspended: false,
+      },
+    });
+
+    // Get all Live or Upcoming contests
+    const activeContests = await Contest.findAll({
+      where: {
+        status: {
+          [Op.in]: ["Live", "Upcoming"],
+        },
+      },
+    });
+
+    const contestIds = activeContests.map((c) => c.id);
+
+    if (contestIds.length === 0) {
+      return res.json({
+        competingUsers: 0,
+        totalUsers,
+        percentage: "0.00",
       });
-  
-      for (const [interval, filter] of Object.entries(dateFilters)) {
-        const { createdAt } = filter;
-  
-        let contests = [];
-  
-        if (createdAt) {
-          const start = createdAt[Op.gte];
-          const end = createdAt[Op.lte];
-  
-          // 1. Find contests that were active (Live or Upcoming) **during** this interval
-          contests = await Contest.findAll({
-            where: {
-              status: { [Op.in]: ["Live", "Upcoming"] },
-              [Op.or]: [
-                {
-                  contest_live_date: {
-                    [Op.between]: [start, end],
-                  },
-                },
-                {
-                  voting_deadline: {
-                    [Op.between]: [start, end],
-                  },
-                },
-                {
-                  contest_live_date: { [Op.lte]: end },
-                  voting_deadline: { [Op.gte]: start },
-                },
-              ],
-            },
-          });
-        } else {
-          // For all_time, just grab all Live/Upcoming contests
-          contests = await Contest.findAll({
-            where: {
-              status: { [Op.in]: ["Live", "Upcoming"] },
-            },
-          });
-        }
-  
-        const contestIds = contests.map((c) => c.id);
-  
-        // 2. Find competitions tied to those contests
-        const competitions = await Competition.findAll({
-          where: {
-            contest_id: { [Op.in]: contestIds },
-          },
-        });
-  
-        // 3. Extract unique competing user IDs
-        const uniqueUserIds = new Set();
-        competitions.forEach((comp) => {
-          if (comp.user1_id) uniqueUserIds.add(comp.user1_id);
-          if (comp.user2_id) uniqueUserIds.add(comp.user2_id);
-        });
-  
-        const count = uniqueUserIds.size;
-        const percent = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
-  
-        results[interval] = {
-          competingUsers: count,
-          totalUsers,
-          percentage: percent,
-        };
-      }
-  
-      res.json(results);
-    } catch (err) {
-      console.error("❌ Error in getIntervalBasedCompetingUsers:", err);
-      res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
-  };
-  
+
+    // Find all competitions tied to those contests
+    const competitions = await Competition.findAll({
+      where: {
+        contest_id: { [Op.in]: contestIds },
+      },
+    });
+
+    const uniqueUserIds = new Set();
+    competitions.forEach((comp) => {
+      if (comp.user1_id) uniqueUserIds.add(comp.user1_id);
+      if (comp.user2_id) uniqueUserIds.add(comp.user2_id);
+    });
+
+    const count = uniqueUserIds.size;
+    const percent = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
+
+    res.json({
+      competingUsers: count,
+      totalUsers,
+      percentage: percent,
+    });
+  } catch (err) {
+    console.error("❌ Error in getCurrentCompetingUsers:", err);
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+};
+
