@@ -102,43 +102,55 @@ exports.getIntervalBasedCompetingUsers = async (req, res) => {
       });
   
       for (const [interval, filter] of Object.entries(dateFilters)) {
-        let dateRangeFilter = {};
+        const { createdAt } = filter;
   
-        // Only apply date range if present (e.g., not for "all_time")
-        if (filter.createdAt) {
-          const start = filter.createdAt[Op.gte];
-          const end = filter.createdAt[Op.lte];
+        let contests = [];
   
-          dateRangeFilter = {
-            [Op.or]: [
-              {
-                contest_live_date: {
-                  [Op.between]: [start, end],
-                },
-              },
-              {
-                voting_deadline: {
-                  [Op.between]: [start, end],
-                },
-              },
-              {
-                contest_live_date: { [Op.lte]: end },
-                voting_deadline: { [Op.gte]: start },
-              },
-            ],
-          };
-        }
+        if (createdAt) {
+          const start = createdAt[Op.gte];
+          const end = createdAt[Op.lte];
   
-        const competitions = await Competition.findAll({
-          include: {
-            model: Contest,
+          // 1. Find contests that were active (Live or Upcoming) **during** this interval
+          contests = await Contest.findAll({
             where: {
               status: { [Op.in]: ["Live", "Upcoming"] },
-              ...dateRangeFilter,
+              [Op.or]: [
+                {
+                  contest_live_date: {
+                    [Op.between]: [start, end],
+                  },
+                },
+                {
+                  voting_deadline: {
+                    [Op.between]: [start, end],
+                  },
+                },
+                {
+                  contest_live_date: { [Op.lte]: end },
+                  voting_deadline: { [Op.gte]: start },
+                },
+              ],
             },
+          });
+        } else {
+          // For all_time, just grab all Live/Upcoming contests
+          contests = await Contest.findAll({
+            where: {
+              status: { [Op.in]: ["Live", "Upcoming"] },
+            },
+          });
+        }
+  
+        const contestIds = contests.map((c) => c.id);
+  
+        // 2. Find competitions tied to those contests
+        const competitions = await Competition.findAll({
+          where: {
+            contest_id: { [Op.in]: contestIds },
           },
         });
   
+        // 3. Extract unique competing user IDs
         const uniqueUserIds = new Set();
         competitions.forEach((comp) => {
           if (comp.user1_id) uniqueUserIds.add(comp.user1_id);
@@ -160,4 +172,5 @@ exports.getIntervalBasedCompetingUsers = async (req, res) => {
       console.error("❌ Error in getIntervalBasedCompetingUsers:", err);
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
-};
+  };
+  
