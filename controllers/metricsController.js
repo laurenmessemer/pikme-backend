@@ -313,23 +313,23 @@ exports.getVoterToCompetitorRatio = async (req, res) => {
 exports.getRetentionStats = async (req, res) => {
     try {
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Normalize to start of today
+      today.setHours(0, 0, 0, 0); // normalize to start of day
   
       const intervals = [1, 7, 30];
       const results = {};
   
       for (const days of intervals) {
-        // 🎯 1. Find users who signed up within the last N days
-        const signupWindowStart = new Date(today);
-        signupWindowStart.setDate(signupWindowStart.getDate() - days);
+        const signupStart = new Date(today);
+        signupStart.setDate(signupStart.getDate() - days);
   
+        // 🎯 Get users who signed up in the last N days (excluding today)
         const cohortUsers = await User.findAll({
           where: {
             role: "participant",
             suspended: false,
             createdAt: {
-              [Op.gte]: signupWindowStart,
-              [Op.lt]: today, // excludes signups from today
+              [Op.gte]: signupStart,
+              [Op.lt]: today, // exclude today
             },
           },
           attributes: ["id"],
@@ -346,18 +346,11 @@ exports.getRetentionStats = async (req, res) => {
           continue;
         }
   
-        // 🎯 2. Check if those users were active TODAY
-        const activityStart = new Date(today);
-        const activityEnd = new Date(today);
-        activityEnd.setDate(activityEnd.getDate() + 1);
-  
+        // ✅ Check if they EVER voted or competed since signup
         const activeVotes = await Vote.findAll({
           where: {
             voter_id: { [Op.in]: userIds },
-            createdAt: {
-              [Op.gte]: activityStart,
-              [Op.lt]: activityEnd,
-            },
+            createdAt: { [Op.gte]: signupStart }, // since signup
           },
           attributes: ["voter_id"],
           group: ["voter_id"],
@@ -365,27 +358,13 @@ exports.getRetentionStats = async (req, res) => {
   
         const activeCompetitions = await Competition.findAll({
           where: {
-            createdAt: {
-              [Op.gte]: activityStart,
-              [Op.lt]: activityEnd,
-            },
             [Op.or]: [
               { user1_id: { [Op.in]: userIds } },
               { user2_id: { [Op.in]: userIds } },
             ],
+            createdAt: { [Op.gte]: signupStart }, // since signup
           },
           attributes: ["user1_id", "user2_id"],
-        });
-  
-        const activeContests = await Contest.findAll({
-          where: {
-            creator_id: { [Op.in]: userIds },
-            createdAt: {
-              [Op.gte]: activityStart,
-              [Op.lt]: activityEnd,
-            },
-          },
-          attributes: ["creator_id"],
         });
   
         const retainedUserIds = new Set();
@@ -394,7 +373,6 @@ exports.getRetentionStats = async (req, res) => {
           if (userIds.includes(c.user1_id)) retainedUserIds.add(c.user1_id);
           if (userIds.includes(c.user2_id)) retainedUserIds.add(c.user2_id);
         });
-        activeContests.forEach((c) => retainedUserIds.add(c.creator_id));
   
         const retainedCount = retainedUserIds.size;
         const percentage = ((retainedCount / userIds.length) * 100).toFixed(2);
@@ -412,4 +390,3 @@ exports.getRetentionStats = async (req, res) => {
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
   };
-  
