@@ -225,4 +225,87 @@ exports.getVotingAndCompetingStats = async (req, res) => {
       console.error("❌ Error in getVotingAndCompetingStats:", err);
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
-  };
+};
+
+exports.getVoterToCompetitorRatio = async (req, res) => {
+    try {
+      const totalUsers = await User.count({
+        where: { role: "participant", suspended: false },
+      });
+  
+      // All-time unique voters
+      const allTimeVoters = await Vote.aggregate("voter_id", "count", {
+        distinct: true,
+      });
+  
+      // All-time unique competitors
+      const allTimeCompetitorsRaw = await Competition.findAll({
+        attributes: ["user1_id", "user2_id"],
+      });
+  
+      const allTimeCompetitorIds = new Set();
+      allTimeCompetitorsRaw.forEach(({ user1_id, user2_id }) => {
+        if (user1_id) allTimeCompetitorIds.add(user1_id);
+        if (user2_id) allTimeCompetitorIds.add(user2_id);
+      });
+  
+      const allTimeCompetitors = allTimeCompetitorIds.size;
+      const allTimeRatio = allTimeCompetitors > 0
+        ? (allTimeVoters / allTimeCompetitors).toFixed(2)
+        : "0.00";
+  
+      // CURRENT snapshot — only Live or Upcoming contests
+      const activeContests = await Contest.findAll({
+        where: {
+          status: { [Op.in]: ["Live", "Upcoming"] },
+        },
+        attributes: ["id"],
+      });
+  
+      const activeContestIds = activeContests.map(c => c.id);
+  
+      const activeCompetitions = await Competition.findAll({
+        where: {
+          contest_id: { [Op.in]: activeContestIds },
+        },
+        attributes: ["user1_id", "user2_id"],
+      });
+  
+      const currentCompetitorIds = new Set();
+      activeCompetitions.forEach(({ user1_id, user2_id }) => {
+        if (user1_id) currentCompetitorIds.add(user1_id);
+        if (user2_id) currentCompetitorIds.add(user2_id);
+      });
+  
+      const currentCompetitors = currentCompetitorIds.size;
+  
+      const now = new Date();
+      const currentVoters = await Vote.count({
+        where: {
+          createdAt: { [Op.gte]: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) }, // last 7 days
+        },
+        distinct: true,
+        col: "voter_id",
+      });
+  
+      const currentRatio = currentCompetitors > 0
+        ? (currentVoters / currentCompetitors).toFixed(2)
+        : "0.00";
+  
+      res.json({
+        current: {
+          voters: currentVoters,
+          competitors: currentCompetitors,
+          ratio: currentRatio,
+        },
+        all_time: {
+          voters: allTimeVoters,
+          competitors: allTimeCompetitors,
+          ratio: allTimeRatio,
+        },
+      });
+    } catch (err) {
+      console.error("❌ Error in getVoterToCompetitorRatio:", err);
+      res.status(500).json({ message: "Internal Server Error", error: err.message });
+    }
+};
