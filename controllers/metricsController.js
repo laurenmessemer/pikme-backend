@@ -390,3 +390,66 @@ exports.getRetentionStats = async (req, res) => {
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
   };
+
+  exports.getGlobalActivationStats = async (req, res) => {
+    try {
+      const allUsers = await User.findAll({
+        where: {
+          role: "participant",
+          suspended: false,
+        },
+        attributes: ["id"],
+      });
+  
+      const userIds = allUsers.map((u) => u.id);
+  
+      if (userIds.length === 0) {
+        return res.json({
+          totalUsers: 0,
+          activated: 0,
+          percentage: "0.00",
+        });
+      }
+  
+      // Users who voted at least once
+      const activeVotes = await Vote.findAll({
+        where: {
+          voter_id: { [Op.in]: userIds },
+        },
+        attributes: ["voter_id"],
+        group: ["voter_id"],
+      });
+  
+      // Users who were in competitions
+      const activeCompetitions = await Competition.findAll({
+        where: {
+          [Op.or]: [
+            { user1_id: { [Op.in]: userIds } },
+            { user2_id: { [Op.in]: userIds } },
+          ],
+        },
+        attributes: ["user1_id", "user2_id"],
+      });
+  
+      const activatedUserIds = new Set();
+      activeVotes.forEach((v) => activatedUserIds.add(v.voter_id));
+      activeCompetitions.forEach((c) => {
+        if (userIds.includes(c.user1_id)) activatedUserIds.add(c.user1_id);
+        if (userIds.includes(c.user2_id)) activatedUserIds.add(c.user2_id);
+      });
+  
+      const activated = activatedUserIds.size;
+      const total = userIds.length;
+      const percentage = ((activated / total) * 100).toFixed(2);
+  
+      res.json({
+        totalUsers: total,
+        activated,
+        percentage,
+      });
+    } catch (err) {
+      console.error("❌ Error in getGlobalActivationStats:", err);
+      res.status(500).json({ message: "Internal Server Error", error: err.message });
+    }
+  };
+  
