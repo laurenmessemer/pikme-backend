@@ -321,7 +321,7 @@ exports.getRetentionStats = async (req, res) => {
       signupStart.setDate(signupStart.getDate() - days);
 
       const signupEnd = new Date(signupStart);
-      signupEnd.setDate(signupEnd.getDate() + 1); // users who signed up exactly N days ago
+      signupEnd.setDate(signupEnd.getDate() + 1); // Users who signed up exactly N days ago
 
       const cohortUsers = await User.findAll({
         where: {
@@ -346,12 +346,21 @@ exports.getRetentionStats = async (req, res) => {
         continue;
       }
 
-      const retentionCutoff = new Date(signupEnd); // next day forward
+      // ✅ Retention activity window = exact same day N days after signup
+      const activityStart = new Date(signupEnd);
+      activityStart.setDate(activityStart.getDate() + (days - 1));
+      activityStart.setHours(0, 0, 0, 0);
+
+      const activityEnd = new Date(activityStart);
+      activityEnd.setDate(activityEnd.getDate() + 1);
 
       const activeVotes = await Vote.findAll({
         where: {
           voter_id: { [Op.in]: userIds },
-          createdAt: { [Op.gte]: retentionCutoff },
+          createdAt: {
+            [Op.gte]: activityStart,
+            [Op.lt]: activityEnd,
+          },
         },
         attributes: ["voter_id"],
         group: ["voter_id"],
@@ -359,11 +368,14 @@ exports.getRetentionStats = async (req, res) => {
 
       const activeCompetitions = await Competition.findAll({
         where: {
+          createdAt: {
+            [Op.gte]: activityStart,
+            [Op.lt]: activityEnd,
+          },
           [Op.or]: [
             { user1_id: { [Op.in]: userIds } },
             { user2_id: { [Op.in]: userIds } },
           ],
-          createdAt: { [Op.gte]: retentionCutoff },
         },
         attributes: ["user1_id", "user2_id"],
       });
@@ -371,14 +383,16 @@ exports.getRetentionStats = async (req, res) => {
       const activeContests = await Contest.findAll({
         where: {
           creator_id: { [Op.in]: userIds },
-          createdAt: { [Op.gte]: retentionCutoff },
+          createdAt: {
+            [Op.gte]: activityStart,
+            [Op.lt]: activityEnd,
+          },
         },
         attributes: ["creator_id"],
       });
 
-      // Merge and deduplicate retained user IDs
+      // ✅ Merge all retained user IDs
       const retainedUserIds = new Set();
-
       activeVotes.forEach((v) => retainedUserIds.add(v.voter_id));
       activeCompetitions.forEach((c) => {
         if (userIds.includes(c.user1_id)) retainedUserIds.add(c.user1_id);
@@ -387,12 +401,12 @@ exports.getRetentionStats = async (req, res) => {
       activeContests.forEach((c) => retainedUserIds.add(c.creator_id));
 
       const retainedCount = retainedUserIds.size;
-      const percent = ((retainedCount / userIds.length) * 100).toFixed(2);
+      const percentage = ((retainedCount / userIds.length) * 100).toFixed(2);
 
       results[`${days}_day`] = {
         cohortSize: userIds.length,
         retained: retainedCount,
-        percentage: percent,
+        percentage,
       };
     }
 
@@ -402,3 +416,4 @@ exports.getRetentionStats = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error", error: err.message });
   }
 };
+
