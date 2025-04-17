@@ -319,23 +319,17 @@ exports.getRetentionStats = async (req, res) => {
       const results = {};
   
       for (const days of intervals) {
-        // 🎯 1. Find users who signed up exactly N days ago
-        const signupStart = new Date(today);
-        signupStart.setDate(signupStart.getDate() - days);
-  
-        const signupEnd = new Date(signupStart);
-        signupEnd.setDate(signupEnd.getDate() + 1);
-  
-        signupStart.setHours(0, 0, 0, 0);
-        signupEnd.setHours(0, 0, 0, 0);
+        // 🎯 1. Find users who signed up within the last N days
+        const signupWindowStart = new Date(today);
+        signupWindowStart.setDate(signupWindowStart.getDate() - days);
   
         const cohortUsers = await User.findAll({
           where: {
             role: "participant",
             suspended: false,
             createdAt: {
-              [Op.gte]: signupStart,
-              [Op.lt]: signupEnd,
+              [Op.gte]: signupWindowStart,
+              [Op.lt]: today, // excludes signups from today
             },
           },
           attributes: ["id"],
@@ -352,14 +346,10 @@ exports.getRetentionStats = async (req, res) => {
           continue;
         }
   
-        // 🎯 2. Check if they were active exactly N days later (voted/competed)
-        const activityStart = new Date(signupEnd);
-        activityStart.setDate(activityStart.getDate() + (days - 1));
-        activityStart.setHours(0, 0, 0, 0);
-  
-        const activityEnd = new Date(activityStart);
+        // 🎯 2. Check if those users were active TODAY
+        const activityStart = new Date(today);
+        const activityEnd = new Date(today);
         activityEnd.setDate(activityEnd.getDate() + 1);
-        activityEnd.setHours(0, 0, 0, 0);
   
         const activeVotes = await Vote.findAll({
           where: {
@@ -422,3 +412,4 @@ exports.getRetentionStats = async (req, res) => {
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
   };
+  
