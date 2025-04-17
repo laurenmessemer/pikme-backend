@@ -391,65 +391,101 @@ exports.getRetentionStats = async (req, res) => {
     }
   };
 
-  exports.getGlobalActivationStats = async (req, res) => {
-    try {
-      const allUsers = await User.findAll({
+exports.getGlobalRetentionStats = async (req, res) => {
+try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const intervals = [1, 7, 30];
+    const results = {};
+
+    // Get all user IDs
+    const allUsers = await User.findAll({
+    where: {
+        role: "participant",
+        suspended: false,
+    },
+    attributes: ["id"],
+    });
+
+    const userIds = allUsers.map(u => u.id);
+
+    if (userIds.length === 0) {
+    intervals.forEach(days => {
+        results[`${days}_day`] = {
+        totalUsers: 0,
+        active: 0,
+        percentage: "0.00",
+        };
+    });
+    return res.json(results);
+    }
+
+    for (const days of intervals) {
+    const activityStart = new Date(today);
+    activityStart.setDate(activityStart.getDate() - days);
+    const activityEnd = new Date(today);
+    activityEnd.setDate(activityEnd.getDate() + 1);
+
+    const activeVotes = await Vote.findAll({
         where: {
-          role: "participant",
-          suspended: false,
+        voter_id: { [Op.in]: userIds },
+        createdAt: {
+            [Op.gte]: activityStart,
+            [Op.lt]: activityEnd,
         },
-        attributes: ["id"],
-      });
-  
-      const userIds = allUsers.map((u) => u.id);
-  
-      if (userIds.length === 0) {
-        return res.json({
-          totalUsers: 0,
-          activated: 0,
-          percentage: "0.00",
-        });
-      }
-  
-      // Users who voted at least once
-      const activeVotes = await Vote.findAll({
-        where: {
-          voter_id: { [Op.in]: userIds },
         },
         attributes: ["voter_id"],
         group: ["voter_id"],
-      });
-  
-      // Users who were in competitions
-      const activeCompetitions = await Competition.findAll({
+    });
+
+    const activeCompetitions = await Competition.findAll({
         where: {
-          [Op.or]: [
+        createdAt: {
+            [Op.gte]: activityStart,
+            [Op.lt]: activityEnd,
+        },
+        [Op.or]: [
             { user1_id: { [Op.in]: userIds } },
             { user2_id: { [Op.in]: userIds } },
-          ],
+        ],
         },
         attributes: ["user1_id", "user2_id"],
-      });
-  
-      const activatedUserIds = new Set();
-      activeVotes.forEach((v) => activatedUserIds.add(v.voter_id));
-      activeCompetitions.forEach((c) => {
-        if (userIds.includes(c.user1_id)) activatedUserIds.add(c.user1_id);
-        if (userIds.includes(c.user2_id)) activatedUserIds.add(c.user2_id);
-      });
-  
-      const activated = activatedUserIds.size;
-      const total = userIds.length;
-      const percentage = ((activated / total) * 100).toFixed(2);
-  
-      res.json({
-        totalUsers: total,
-        activated,
+    });
+
+    const activeContests = await Contest.findAll({
+        where: {
+        creator_id: { [Op.in]: userIds },
+        createdAt: {
+            [Op.gte]: activityStart,
+            [Op.lt]: activityEnd,
+        },
+        },
+        attributes: ["creator_id"],
+    });
+
+    const retainedUserIds = new Set();
+    activeVotes.forEach((v) => retainedUserIds.add(v.voter_id));
+    activeCompetitions.forEach((c) => {
+        if (userIds.includes(c.user1_id)) retainedUserIds.add(c.user1_id);
+        if (userIds.includes(c.user2_id)) retainedUserIds.add(c.user2_id);
+    });
+    activeContests.forEach((c) => retainedUserIds.add(c.creator_id));
+
+    const retainedCount = retainedUserIds.size;
+    const percentage = ((retainedCount / userIds.length) * 100).toFixed(2);
+
+    results[`${days}_day`] = {
+        totalUsers: userIds.length,
+        active: retainedCount,
         percentage,
-      });
-    } catch (err) {
-      console.error("❌ Error in getGlobalActivationStats:", err);
-      res.status(500).json({ message: "Internal Server Error", error: err.message });
+    };
     }
-  };
+
+    res.json(results);
+} catch (err) {
+    console.error("❌ Error in getGlobalRetentionStats:", err);
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+}
+};
   
