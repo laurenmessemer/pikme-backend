@@ -7,6 +7,11 @@ const path = require("path");
 const fileUpload = require("express-fileupload");
 require("./models");
 
+// ✅ Add cron + controller
+const cron = require("node-cron");
+const { recordWeeklyVoterStats } = require("./utils/recordWeeklyVoterStats");
+
+
 
 // ✅ Import Routes
 const authRoutes = require("./routes/authRoutes");
@@ -119,6 +124,18 @@ app.use((err, req, res, next) => {
   console.error("❌ Server Error:", err.message);
   res.status(err.status || 500).json({ error: err.message || "Internal Server Error" });
 });
+
+// ✅ Cron Job: Save Weekly Voter Stats Every Monday 12:05 AM
+cron.schedule("5 0 * * 1", async () => {
+  console.log("📊 Running weekly voter stats cron...");
+  try {
+    await recordWeeklyVoterStats();
+    console.log("✅ Weekly voter stats recorded.");
+  } catch (err) {
+    console.error("❌ Failed to record weekly voter stats:", err.message);
+  }
+});
+
 
 // ✅ Sync Database and Start Server
 sequelize

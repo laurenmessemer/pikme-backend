@@ -491,49 +491,65 @@ try {
 
 exports.getNewAndRepeatVotersPerWeek = async (req, res) => {
     try {
-      const result = await Vote.findAll({
-        attributes: [
-          [Sequelize.fn("DATE_TRUNC", "week", Sequelize.col("createdAt")), "week"],
-          "voter_id",
-          [Sequelize.fn("MIN", Sequelize.col("createdAt")), "first_vote"]
-        ],
-        group: ["week", "voter_id"],
-        raw: true,
+      // 🗓 Get last week's start date (Monday)
+      const now = new Date();
+      const lastWeekStart = new Date(now);
+      lastWeekStart.setDate(lastWeekStart.getDate() - ((now.getDay() + 6) % 7 + 7)); // Previous Monday
+      lastWeekStart.setHours(0, 0, 0, 0);
+  
+      const lastWeekEnd = new Date(lastWeekStart);
+      lastWeekEnd.setDate(lastWeekEnd.getDate() + 7);
+  
+      // ✅ Check if already recorded
+      const existing = await WeeklyVoterStats.findOne({
+        where: { weekStart: lastWeekStart.toISOString().slice(0, 10) },
       });
   
-      // Group by week
-      const weeklyVoters = {};
-      for (const row of result) {
-        const week = row.week.toISOString().slice(0, 10); // e.g., "2024-04-01"
-        const voterId = row.voter_id;
-        const firstVote = new Date(row.first_vote);
-        const weekStart = new Date(week);
+      if (!existing) {
+        // 🔍 Find all voters and their first vote time
+        const votes = await Vote.findAll({
+          attributes: [
+            [Sequelize.fn("DATE_TRUNC", "week", Sequelize.col("createdAt")), "week"],
+            "voter_id",
+            [Sequelize.fn("MIN", Sequelize.col("createdAt")), "first_vote"]
+          ],
+          where: {
+            createdAt: {
+              [Op.gte]: lastWeekStart,
+              [Op.lt]: lastWeekEnd
+            }
+          },
+          group: ["week", "voter_id"],
+          raw: true,
+        });
   
-        if (!weeklyVoters[week]) {
-          weeklyVoters[week] = {
-            newVoters: new Set(),
-            repeatVoters: new Set(),
-          };
+        let newVoters = 0;
+        let repeatVoters = 0;
+  
+        for (const v of votes) {
+          const firstVote = new Date(v.first_vote);
+          if (firstVote.getTime() === lastWeekStart.getTime()) {
+            newVoters++;
+          } else {
+            repeatVoters++;
+          }
         }
   
-        if (firstVote.getTime() === weekStart.getTime()) {
-          weeklyVoters[week].newVoters.add(voterId);
-        } else {
-          weeklyVoters[week].repeatVoters.add(voterId);
-        }
+        await WeeklyVoterStats.create({
+          weekStart: lastWeekStart.toISOString().slice(0, 10),
+          newVoters,
+          repeatVoters,
+        });
       }
   
-      // Convert to frontend-friendly format
-      const response = Object.entries(weeklyVoters).map(([week, data]) => ({
-        week,
-        newVoters: data.newVoters.size,
-        repeatVoters: data.repeatVoters.size,
-      }));
+      // 📦 Return all weekly saved records
+      const allStats = await WeeklyVoterStats.findAll({
+        order: [["weekStart", "DESC"]],
+      });
   
-      res.json(response);
+      res.json(allStats);
     } catch (err) {
       console.error("❌ Error in getNewAndRepeatVotersPerWeek:", err);
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
   };
-  
