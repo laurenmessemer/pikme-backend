@@ -309,3 +309,96 @@ exports.getVoterToCompetitorRatio = async (req, res) => {
       res.status(500).json({ message: "Internal Server Error", error: err.message });
     }
 };
+
+exports.getRetentionStats = async (req, res) => {
+  try {
+    const today = new Date();
+    const intervals = [1, 7, 30];
+    const results = {};
+
+    for (const days of intervals) {
+      const signupStart = new Date(today);
+      signupStart.setDate(signupStart.getDate() - days);
+
+      const signupEnd = new Date(signupStart);
+      signupEnd.setDate(signupEnd.getDate() + 1); // users who signed up exactly N days ago
+
+      const cohortUsers = await User.findAll({
+        where: {
+          role: "participant",
+          suspended: false,
+          createdAt: {
+            [Op.gte]: signupStart,
+            [Op.lt]: signupEnd,
+          },
+        },
+        attributes: ["id"],
+      });
+
+      const userIds = cohortUsers.map((u) => u.id);
+
+      if (userIds.length === 0) {
+        results[`${days}_day`] = {
+          cohortSize: 0,
+          retained: 0,
+          percentage: "0.00",
+        };
+        continue;
+      }
+
+      const retentionCutoff = new Date(signupEnd); // next day forward
+
+      const activeVotes = await Vote.findAll({
+        where: {
+          voter_id: { [Op.in]: userIds },
+          createdAt: { [Op.gte]: retentionCutoff },
+        },
+        attributes: ["voter_id"],
+        group: ["voter_id"],
+      });
+
+      const activeCompetitions = await Competition.findAll({
+        where: {
+          [Op.or]: [
+            { user1_id: { [Op.in]: userIds } },
+            { user2_id: { [Op.in]: userIds } },
+          ],
+          createdAt: { [Op.gte]: retentionCutoff },
+        },
+        attributes: ["user1_id", "user2_id"],
+      });
+
+      const activeContests = await Contest.findAll({
+        where: {
+          creator_id: { [Op.in]: userIds },
+          createdAt: { [Op.gte]: retentionCutoff },
+        },
+        attributes: ["creator_id"],
+      });
+
+      // Merge and deduplicate retained user IDs
+      const retainedUserIds = new Set();
+
+      activeVotes.forEach((v) => retainedUserIds.add(v.voter_id));
+      activeCompetitions.forEach((c) => {
+        if (userIds.includes(c.user1_id)) retainedUserIds.add(c.user1_id);
+        if (userIds.includes(c.user2_id)) retainedUserIds.add(c.user2_id);
+      });
+      activeContests.forEach((c) => retainedUserIds.add(c.creator_id));
+
+      const retainedCount = retainedUserIds.size;
+      const percent = ((retainedCount / userIds.length) * 100).toFixed(2);
+
+      results[`${days}_day`] = {
+        cohortSize: userIds.length,
+        retained: retainedCount,
+        percentage: percent,
+      };
+    }
+
+    res.json(results);
+  } catch (err) {
+    console.error("❌ Error in getRetentionStats:", err);
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+};

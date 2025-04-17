@@ -7,6 +7,7 @@ router.get("/votes/voting-user-percentage", metricsController.getVotingUserPerce
 router.get("/votes/current-competing-users", metricsController.getCurrentCompetingUsers);
 router.get("/votes/voting-and-competing-stats", metricsController.getVotingAndCompetingStats);
 router.get("/votes/voter-to-competitor-ratio", metricsController.getVoterToCompetitorRatio);
+router.get("/votes/retention", metricsController.getRetentionStats);
 router.get("/votes/:userId", metricsController.getVoteMetrics);
 
 
