@@ -9,6 +9,7 @@ router.get("/votes/voting-and-competing-stats", metricsController.getVotingAndCo
 router.get("/votes/voter-to-competitor-ratio", metricsController.getVoterToCompetitorRatio);
 router.get("/votes/retention", metricsController.getRetentionStats);
 router.get("/votes/global-retention", metricsController.getGlobalRetentionStats);
+router.get("/votes/new-vs-repeat", metricsController.getNewAndRepeatVotersPerWeek);
 router.get("/votes/:userId", metricsController.getVoteMetrics);
 
 

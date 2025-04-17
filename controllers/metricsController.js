@@ -488,4 +488,52 @@ try {
     res.status(500).json({ message: "Internal Server Error", error: err.message });
 }
 };
+
+exports.getNewAndRepeatVotersPerWeek = async (req, res) => {
+    try {
+      const result = await Vote.findAll({
+        attributes: [
+          [Sequelize.fn("DATE_TRUNC", "week", Sequelize.col("createdAt")), "week"],
+          "voter_id",
+          [Sequelize.fn("MIN", Sequelize.col("createdAt")), "first_vote"]
+        ],
+        group: ["week", "voter_id"],
+        raw: true,
+      });
+  
+      // Group by week
+      const weeklyVoters = {};
+      for (const row of result) {
+        const week = row.week.toISOString().slice(0, 10); // e.g., "2024-04-01"
+        const voterId = row.voter_id;
+        const firstVote = new Date(row.first_vote);
+        const weekStart = new Date(week);
+  
+        if (!weeklyVoters[week]) {
+          weeklyVoters[week] = {
+            newVoters: new Set(),
+            repeatVoters: new Set(),
+          };
+        }
+  
+        if (firstVote.getTime() === weekStart.getTime()) {
+          weeklyVoters[week].newVoters.add(voterId);
+        } else {
+          weeklyVoters[week].repeatVoters.add(voterId);
+        }
+      }
+  
+      // Convert to frontend-friendly format
+      const response = Object.entries(weeklyVoters).map(([week, data]) => ({
+        week,
+        newVoters: data.newVoters.size,
+        repeatVoters: data.repeatVoters.size,
+      }));
+  
+      res.json(response);
+    } catch (err) {
+      console.error("❌ Error in getNewAndRepeatVotersPerWeek:", err);
+      res.status(500).json({ message: "Internal Server Error", error: err.message });
+    }
+  };
   
