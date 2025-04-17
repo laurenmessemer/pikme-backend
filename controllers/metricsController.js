@@ -148,3 +148,81 @@ exports.getCurrentCompetingUsers = async (req, res) => {
   }
 };
 
+exports.getVotingAndCompetingStats = async (req, res) => {
+    try {
+      // 🔹 Total active users
+      const totalUsers = await User.findAll({
+        where: {
+          role: "participant",
+          suspended: false,
+        },
+        attributes: ["id"],
+        raw: true,
+      });
+      const totalUserIds = totalUsers.map((u) => u.id);
+  
+      // 🔹 Users who have voted
+      const votedUsers = await Vote.findAll({
+        attributes: ["voter_id"],
+        group: ["voter_id"],
+        raw: true,
+      });
+      const votedUserIds = new Set(votedUsers.map((v) => v.voter_id));
+  
+      // 🔹 Users who have competed (all-time)
+      const allCompetitions = await Competition.findAll({
+        attributes: ["user1_id", "user2_id"],
+        raw: true,
+      });
+  
+      const competedUserIds = new Set();
+      allCompetitions.forEach((comp) => {
+        if (comp.user1_id) competedUserIds.add(comp.user1_id);
+        if (comp.user2_id) competedUserIds.add(comp.user2_id);
+      });
+  
+      // 🔹 Users who are currently competing (Live or Upcoming)
+      const activeCompetitions = await Competition.findAll({
+        include: {
+          model: Contest,
+          where: {
+            status: { [Op.in]: ["Live", "Upcoming"] },
+          },
+        },
+        attributes: ["user1_id", "user2_id"],
+        raw: true,
+      });
+  
+      const currentlyCompetingUserIds = new Set();
+      activeCompetitions.forEach((comp) => {
+        if (comp.user1_id) currentlyCompetingUserIds.add(comp.user1_id);
+        if (comp.user2_id) currentlyCompetingUserIds.add(comp.user2_id);
+      });
+  
+      // 🔹 Intersections
+      const currentBoth = Array.from(currentlyCompetingUserIds).filter((id) =>
+        votedUserIds.has(id)
+      );
+      const allTimeBoth = Array.from(competedUserIds).filter((id) =>
+        votedUserIds.has(id)
+      );
+  
+      const totalCount = totalUserIds.length;
+  
+      res.json({
+        current: {
+          both: currentBoth.length,
+          totalUsers: totalCount,
+          percentage: totalCount > 0 ? ((currentBoth.length / totalCount) * 100).toFixed(2) : "0.00",
+        },
+        all_time: {
+          both: allTimeBoth.length,
+          totalUsers: totalCount,
+          percentage: totalCount > 0 ? ((allTimeBoth.length / totalCount) * 100).toFixed(2) : "0.00",
+        },
+      });
+    } catch (err) {
+      console.error("❌ Error in getVotingAndCompetingStats:", err);
+      res.status(500).json({ message: "Internal Server Error", error: err.message });
+    }
+  };
