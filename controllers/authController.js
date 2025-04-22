@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const sendConfirmationEmail = require("../utils/sendConfirmationEmail"); // ✅ Add this line
 
 
+
 // ✅ Generate JWT Token
 const generateToken = (user) => {
   return jwt.sign(
@@ -113,7 +114,7 @@ exports.registerUser = async (req, res) => {
       console.error("❌ Email send failed:", emailError.message);
       // optionally continue without blocking registration
     }
-    
+
     // ✅ Return response
     res.status(201).json({
       message: "User registered successfully. Please check your email to verify your account.",
@@ -211,4 +212,31 @@ exports.verifyEmail = async (req, res) => {
   await user.save();
 
   res.json({ message: "Email verified successfully!" });
+};
+
+exports.resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if (user.is_verified) {
+      return res.status(400).json({ message: "Email is already verified." });
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    user.verification_token = verificationToken;
+    await user.save();
+
+    await sendConfirmationEmail(user.email, user.username, verificationToken);
+
+    res.json({ message: "Verification email resent successfully." });
+  } catch (err) {
+    console.error("❌ Resend Email Error:", err.message);
+    res.status(500).json({ message: "Failed to resend email.", error: err.message });
+  }
 };
