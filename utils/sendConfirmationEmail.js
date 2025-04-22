@@ -3,6 +3,13 @@ const mailchimp = require("@mailchimp/mailchimp_transactional")(process.env.MAIL
 const sendConfirmationEmail = async (toEmail, username, token) => {
   const verifyUrl = `https://playpikme.com/verify-email?token=${token}`;
 
+  // 🔍 Debug: Log what we're sending
+  console.log("📧 Preparing to send email with:");
+  console.log("📤 To:", toEmail);
+  console.log("👤 Username:", username);
+  console.log("🔗 Verification URL:", verifyUrl);
+  console.log("📦 Template Name:", "email-confirmation-template");
+
   try {
     const response = await mailchimp.messages.sendTemplate({
       template_name: "email-confirmation-template", // must exactly match Mailchimp template slug
@@ -13,7 +20,7 @@ const sendConfirmationEmail = async (toEmail, username, token) => {
         to: [
           {
             email: toEmail,
-            name: username || "User",
+            name: username || "Photographer",
             type: "to",
           },
         ],
@@ -25,18 +32,19 @@ const sendConfirmationEmail = async (toEmail, username, token) => {
             content: verifyUrl,
           },
           {
-            name: "SUBJECT", // to power *|SUBJECT:...|* in template title
+            name: "SUBJECT", // used in *|SUBJECT:...|* if set in template title
             content: "Verify your PikMe email ✉️",
           },
         ],
       },
     });
 
-    console.log("✅ Fancy confirmation email sent to", toEmail, response);
+    console.log("✅ Fancy confirmation email sent to", toEmail);
+    console.log("📬 Mandrill response:", response);
   } catch (err) {
     console.error("❌ Email sending failed:");
     if (err.response?.body) {
-      console.error(JSON.stringify(err.response.body, null, 2));
+      console.error("📉 Mandrill API Error:", JSON.stringify(err.response.body, null, 2));
     } else {
       console.error(err);
     }
