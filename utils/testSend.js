@@ -7,7 +7,7 @@ const sendConfirmationEmail = async () => {
   try {
     const response = await mailchimp.messages.send({
       message: {
-        from_email: "hello@playpikme.com",
+        from_email: "playpikme.com",
         from_name: "PikMe",
         to: [{ email: toEmail, type: "to" }],
         subject: "Test Email from PikMe",
