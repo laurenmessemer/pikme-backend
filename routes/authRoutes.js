@@ -14,7 +14,7 @@ router.post("/login", loginUser);
 router.get("/me", authMiddleware, getUserProfile);
 
 // ✅ Verify Email
-router.get("/verify-email", verifyEmail);
+router.get("/verify-email", authController.verifyEmail);
 
 // ✅ Resend Verification Email
 router.post("/resend-verification", resendVerificationEmail); // ✅ Add this line
