@@ -5,7 +5,7 @@ const sendConfirmationEmail = async (toEmail, username, token) => {
 
   try {
     await mailchimp.messages.sendTemplate({
-      template_name: "email-confirmation-template", // ✅ your Mandrill template name
+      template_name: "email-confirmation-v2", // ✅ your Mandrill template name
       template_content: [], // not needed unless you're injecting dynamic blocks
       message: {
         from_email: "hello@playpikme.com", // ✅ make sure it's your authenticated sender
