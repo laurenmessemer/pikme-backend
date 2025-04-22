@@ -1,6 +1,5 @@
-require("dotenv").config();
-console.log("📛 API Key Loaded:", process.env.MAILCHIMP_TRANSACTIONAL_KEY ? "✅ Present" : "❌ MISSING");
-const mailchimp = require("@mailchimp/mailchimp_transactional")(process.env.MAILCHIMP_TRANSACTIONAL_KEY);
+const mailchimp = require("@mailchimp/mailchimp_transactional")("md-ghenRxKxpCsZ-VeELfh-nQ");
+console.log("📛 API Key Loaded:", "md-ghenRxKxpCsZ-VeELfh-nQ" ? "✅ OK" : "❌❌ MISSING");
 
 const sendConfirmationEmail = async () => {
   const toEmail = "lauren1188@gmail.com";
@@ -8,7 +7,7 @@ const sendConfirmationEmail = async () => {
   try {
     const response = await mailchimp.messages.send({
       message: {
-        from_email: "hello@playpikme.com",
+        from_email: "sandbox@mandrillapp.com",
         from_name: "PikMe",
         to: [{ email: toEmail, type: "to" }],
         subject: "Test Email from PikMe",
