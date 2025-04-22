@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { User, Wallet } = require("../models");
+const crypto = require("crypto");
 const sendConfirmationEmail = require("../utils/sendConfirmationEmail"); // ✅ Add this line
 
 
@@ -106,9 +107,13 @@ exports.registerUser = async (req, res) => {
       transaction_history: transactionHistory,
     });
 
-    // ✅ Send verification email via Mailchimp
-    await sendConfirmationEmail(newUser.email, newUser.username, verificationToken);
-
+    try {
+      await sendConfirmationEmail(newUser.email, newUser.username, verificationToken);
+    } catch (emailError) {
+      console.error("❌ Email send failed:", emailError.message);
+      // optionally continue without blocking registration
+    }
+    
     // ✅ Return response
     res.status(201).json({
       message: "User registered successfully. Please check your email to verify your account.",
