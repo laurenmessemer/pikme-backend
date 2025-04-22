@@ -11,6 +11,7 @@ require("./models");
 const cron = require("node-cron");
 const { recordWeeklyVoterStats } = require("./utils/recordWeeklyVoterStats");
 
+console.log("🚀 Mailchimp API Key Loaded:", !!process.env.MAILCHIMP_TRANSACTIONAL_KEY);
 
 
 // ✅ Import Routes
