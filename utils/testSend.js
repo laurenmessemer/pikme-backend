@@ -2,7 +2,7 @@ const mailchimp = require("@mailchimp/mailchimp_transactional")("md-ghenRxKxpCsZ
 console.log("📛 API Key Loaded:", "md-ghenRxKxpCsZ-VeELfh-nQ" ? "✅ OK" : "❌❌ MISSING");
 
 const sendConfirmationEmail = async () => {
-  const toEmail = "lauren1188@gmail.com";
+  const toEmail = "hello@playpikme.com";
 
   try {
     const response = await mailchimp.messages.send({
