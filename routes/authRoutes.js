@@ -16,5 +16,7 @@ router.get("/me", authMiddleware, getUserProfile);
 // ✅ Verify Email
 router.get("/verify-email", verifyEmail);
 
+// ✅ Resend Verification Email
+router.get("/resend-verification", resendVerificationEmail);
 
 module.exports = router;
