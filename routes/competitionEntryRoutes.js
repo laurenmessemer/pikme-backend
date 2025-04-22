@@ -40,4 +40,8 @@ router.get("/invite/:inviteLink", CompetitionEntryController.getInviteCompetitio
 // ✅ Accept Invite for Competition
 router.post("/accept-invite", CompetitionEntryController.acceptInvite);
 
+// ✅ Send Invite Email
+router.post("/send-invite", CompetitionEntryController.emailInviteLink);
+
+
 module.exports = router;

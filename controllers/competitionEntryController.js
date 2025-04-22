@@ -411,6 +411,23 @@ const acceptInvite = async (req, res) => {
   }
 };
 
+const emailInviteLink = async (req, res) => {
+  try {
+    const { email, inviterName, inviteLink } = req.body;
+
+    if (!email || !inviterName || !inviteLink) {
+      return res.status(400).json({ message: "Missing fields." });
+    }
+
+    await sendInviteEmail(email, inviterName, inviteLink);
+    res.status(200).json({ message: "Invite email sent successfully." });
+
+  } catch (error) {
+    console.error("❌ Error sending invite email:", error.message);
+    res.status(500).json({ message: "Failed to send invite email.", error: error.message });
+  }
+};
+
 
 // ✅ Ensure all functions are correctly exported
 module.exports = {
@@ -423,4 +440,5 @@ module.exports = {
   confirmSubmission,
   getInviteCompetition, // ✅ Fix: Ensure this function exists before exporting
   acceptInvite,
+  emailInviteLink,
 };

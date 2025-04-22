@@ -42,6 +42,7 @@ router.get("/status", getCompetitionStatus); // ✅ This was missing
 router.get("/find-open", findOpenCompetition);
 
 
+
 module.exports = router;
 
 
