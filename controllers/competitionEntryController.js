@@ -27,6 +27,7 @@ const getUploadURL = async (req, res) => {
 
     const params = {
       Bucket: process.env.S3_BUCKET_NAME,
+      acl: "public-read",
       Key: fileKey,
       Expires: 300, // 5 minutes
       ContentType: fileType || "image/jpeg",
