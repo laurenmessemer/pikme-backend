@@ -14,6 +14,7 @@ AWS.config.update({
 
 const s3 = new AWS.S3();
 
+
 // ✅ Fix: Ensure `getUploadURL` is properly defined before exporting
 const getUploadURL = async (req, res) => {
   try {
@@ -27,8 +28,8 @@ const getUploadURL = async (req, res) => {
 
     const params = {
       Bucket: process.env.S3_BUCKET_NAME,
-      acl: "public-read",
       Key: fileKey,
+      ACL: "public-read",
       Expires: 300, // 5 minutes
       ContentType: fileType || "image/jpeg",
       CacheControl: "public, max-age=31536000, immutable",
