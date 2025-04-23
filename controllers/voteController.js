@@ -49,6 +49,7 @@ exports.getVotingEntries = async (req, res) => {
 
 // ✅ Cast vote
 exports.castVote = async (req, res) => {
+  console.log("📩 Incoming vote submission:", req.body);
   const { competitionId, selectedImage, voterId } = req.body;
 
   if (!competitionId || !selectedImage || !voterId) {
