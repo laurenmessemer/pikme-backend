@@ -51,11 +51,12 @@ exports.getVotingEntries = async (req, res) => {
 exports.castVote = async (req, res) => {
   const { competitionId, selectedImage, voterId } = req.body;
 
-  if (!competitionId || !selectedImage || !voterId) {
+  if (!competitionId || !selectedImage) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  const isAnon = voterId.startsWith("anon-");
+  const isAnon = !voterId || voterId.toString().startsWith("anon-");
+  const dbVoterId = isAnon ? null : voterId;
 
   try {
     const competition = await Competition.findByPk(competitionId);
@@ -63,16 +64,18 @@ exports.castVote = async (req, res) => {
       return res.status(404).json({ message: "Competition not found" });
     }
 
-    // ✅ Prevent duplicate voting
-    const existingVote = await Vote.findOne({
-      where: { voter_id: voterId, competition_id: competitionId }
-    });
+    // ✅ Only check for duplicate votes if voterId is not anonymous
+    if (dbVoterId !== null) {
+      const existingVote = await Vote.findOne({
+        where: { voter_id: dbVoterId, competition_id: competitionId }
+      });
 
-    if (existingVote) {
-      return res.status(400).json({ message: "You have already voted in this competition" });
+      if (existingVote) {
+        return res.status(400).json({ message: "You have already voted in this competition" });
+      }
     }
 
-    // ✅ Check if selected image is valid
+    // ✅ Determine which image was voted for
     let voted_for = null;
     if (selectedImage === competition.user1_image) {
       voted_for = "user1";
@@ -84,9 +87,9 @@ exports.castVote = async (req, res) => {
       return res.status(400).json({ message: "Invalid image selected" });
     }
 
-    // ✅ Save vote even for anonymous users
+    // ✅ Save the vote
     await Vote.create({
-      voter_id: voterId,
+      voter_id: dbVoterId, // null for anonymous users
       competition_id: competitionId,
       voted_for
     });
