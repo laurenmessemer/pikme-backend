@@ -55,8 +55,8 @@ exports.castVote = async (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  const isAnon = !voterId || voterId.toString().startsWith("anon-");
-  const dbVoterId = isAnon ? null : voterId;
+  const isAnon = typeof voterId === "string" && voterId.startsWith("anon-");
+  const dbVoterId = isAnon ? null : parseInt(voterId);
 
   try {
     const competition = await Competition.findByPk(competitionId);
@@ -64,10 +64,13 @@ exports.castVote = async (req, res) => {
       return res.status(404).json({ message: "Competition not found" });
     }
 
-    // ✅ Only check for duplicate votes if voterId is not anonymous
-    if (dbVoterId !== null) {
+    // ✅ Only check for duplicates if voter is logged in
+    if (!isAnon && dbVoterId) {
       const existingVote = await Vote.findOne({
-        where: { voter_id: dbVoterId, competition_id: competitionId }
+        where: {
+          voter_id: dbVoterId,
+          competition_id: competitionId,
+        },
       });
 
       if (existingVote) {
@@ -75,7 +78,7 @@ exports.castVote = async (req, res) => {
       }
     }
 
-    // ✅ Determine which image was voted for
+    // ✅ Validate selected image
     let voted_for = null;
     if (selectedImage === competition.user1_image) {
       voted_for = "user1";
@@ -87,11 +90,11 @@ exports.castVote = async (req, res) => {
       return res.status(400).json({ message: "Invalid image selected" });
     }
 
-    // ✅ Save the vote
+    // ✅ Record vote, use `null` for anonymous
     await Vote.create({
-      voter_id: dbVoterId, // null for anonymous users
+      voter_id: dbVoterId || null,
       competition_id: competitionId,
-      voted_for
+      voted_for,
     });
 
     await competition.save();
@@ -101,11 +104,11 @@ exports.castVote = async (req, res) => {
         ? "Anonymous vote recorded (limited to 3 max)."
         : "Vote recorded successfully",
       votes_user1: competition.votes_user1,
-      votes_user2: competition.votes_user2
+      votes_user2: competition.votes_user2,
     });
-
   } catch (error) {
     console.error("❌ Error casting vote:", error);
     res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
+
