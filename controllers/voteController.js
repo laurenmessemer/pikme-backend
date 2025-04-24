@@ -55,9 +55,9 @@ exports.castVote = async (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  const isAnon = typeof voterId === "string" && voterId.startsWith("anon-");
-  const dbVoterId = isAnon ? null : parseInt(voterId);
-
+  const dbVoterId = parseInt(voterId);
+  const isAnon = dbVoterId === 99999;
+  
   try {
     const competition = await Competition.findByPk(competitionId);
     if (!competition) {
