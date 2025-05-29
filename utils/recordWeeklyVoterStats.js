@@ -1,5 +1,5 @@
-const { Vote, WeeklyVoterStats } = require("../models");
-const { Sequelize } = require("sequelize");
+const { Vote, WeeklyVoterStats } = require('../models');
+const { Sequelize } = require('sequelize');
 
 exports.recordWeeklyVoterStats = async () => {
   const today = new Date();
@@ -16,10 +16,10 @@ exports.recordWeeklyVoterStats = async () => {
     // Fetch all voters and their first vote times, grouped by voter
     const voters = await Vote.findAll({
       attributes: [
-        "voter_id",
-        [Sequelize.fn("MIN", Sequelize.col("createdAt")), "first_vote"]
+        'voter_id',
+        [Sequelize.fn('MIN', Sequelize.col('createdAt')), 'first_vote'],
       ],
-      group: ["voter_id"],
+      group: ['voter_id'],
       raw: true,
     });
 
@@ -53,10 +53,8 @@ exports.recordWeeklyVoterStats = async () => {
       newVoters: newVoterIds.size,
       repeatVoters: repeatVoterIds.size,
     });
-
-    console.log(`📊 Weekly voter stats recorded: ${newVoterIds.size} new, ${repeatVoterIds.size} repeat.`);
   } catch (err) {
-    console.error("❌ Error in recordWeeklyVoterStats:", err);
+    console.error('❌ Error in recordWeeklyVoterStats:', err);
     throw err;
   }
 };

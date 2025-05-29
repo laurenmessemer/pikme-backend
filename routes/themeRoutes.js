@@ -1,8 +1,8 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const AWS = require("aws-sdk");
-const fileUpload = require("express-fileupload");
-require("dotenv").config();
+const AWS = require('aws-sdk');
+const fileUpload = require('express-fileupload');
+require('dotenv').config();
 
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -24,27 +24,33 @@ const {
   updateThemeCoverImageUrl,
   uploadThemeCover,
   directUpload,
-} = require("../controllers/themeController");
+} = require('../controllers/themeController');
+const isUserMiddleware = require('../middleware/isUserMiddleware');
+const isAdminOrUserMiddleware = require('../middleware/isAdminOrUserMiddleware');
 
 // ✅ Middleware
 router.use(fileUpload());
-console.log("✅ themeRoutes.js loaded");
 
 // ✅ Debugging wrapper
-router.post("/direct-upload", (req, res, next) => {
-  console.log("📨 Hit /direct-upload route");
-  next();
-}, directUpload);
+router.post(
+  '/direct-upload',
+  (req, res, next) => {
+    console.log('📨 Hit /direct-upload route');
+    next();
+  },
+  isAdminOrUserMiddleware,
+  directUpload
+);
 
 // ✅ Other Routes
-router.get("/get-upload-url", getUploadURL);
-router.post("/create", createTheme);
-router.get("/", getAllThemes);
-router.get("/:id", getThemeById);
-router.put("/:id", updateTheme);
-router.delete("/:id", deleteTheme);
-router.post("/:id/entries", addThemeEntry);
-router.delete("/entries/:id", deleteThemeEntry);
-router.put("/update-cover", updateThemeCoverImageUrl);
+router.get('/get-upload-url', isAdminOrUserMiddleware, getUploadURL);
+router.post('/create', isAdminOrUserMiddleware, createTheme);
+router.get('/', isAdminOrUserMiddleware, getAllThemes);
+router.get('/:id', isAdminOrUserMiddleware, getThemeById);
+router.put('/:id', isAdminOrUserMiddleware, updateTheme);
+router.delete('/:id', isAdminOrUserMiddleware, deleteTheme);
+router.post('/:id/entries', isAdminOrUserMiddleware, addThemeEntry);
+router.delete('/entries/:id', isAdminOrUserMiddleware, deleteThemeEntry);
+router.put('/update-cover', isAdminOrUserMiddleware, updateThemeCoverImageUrl);
 
 module.exports = router;

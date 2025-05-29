@@ -1,3 +1,3 @@
-import CompetitionEntry from "./CompetitionEntry"; // Import main entry component
+import CompetitionEntry from './CompetitionEntry'; // Import main entry component
 
-<Route path="/enter-competition" element={<CompetitionEntry />} />
+<Route path="/enter-competition" element={<CompetitionEntry />} />;

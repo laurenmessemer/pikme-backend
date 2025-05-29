@@ -1,6 +1,6 @@
-const nodemailer = require("nodemailer");
+const nodemailer = require('nodemailer');
 
-const PIKME_BASE_URL = "https://pikme.com"; // Replace with your actual website URL
+const PIKME_BASE_URL = 'https://pikme.com'; // Replace with your actual website URL
 
 /** ✅ Generate a random 8-character invite code */
 const generateInviteCode = () => {
@@ -13,13 +13,9 @@ const sendInviteEmail = async (recipientEmail, inviteCode, contestId) => {
     // 1️⃣ Create a test email account (Ethereal)
     const testAccount = await nodemailer.createTestAccount();
 
-    console.log("📩 Ethereal Test Account:");
-    console.log("User:", testAccount.user);
-    console.log("Pass:", testAccount.pass);
-
     // 2️⃣ Create a transporter object
     const transporter = nodemailer.createTransport({
-      host: "smtp.ethereal.email",
+      host: 'smtp.ethereal.email',
       port: 587,
       secure: false, // Use TLS
       auth: {
@@ -61,13 +57,13 @@ const sendInviteEmail = async (recipientEmail, inviteCode, contestId) => {
     // 5️⃣ Send email
     const info = await transporter.sendMail(mailOptions);
 
-    console.log("✅ Invite Email Sent: %s", info.messageId);
-    console.log("🔗 Preview URL: %s", nodemailer.getTestMessageUrl(info));
-
-    return { messageId: info.messageId, previewUrl: nodemailer.getTestMessageUrl(info) };
+    return {
+      messageId: info.messageId,
+      previewUrl: nodemailer.getTestMessageUrl(info),
+    };
   } catch (error) {
-    console.error("❌ Error sending invite email:", error.message);
-    throw new Error("Error sending invite email");
+    console.error('❌ Error sending invite email:', error.message);
+    throw new Error('Error sending invite email');
   }
 };
 

@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const Sequelize = require("sequelize");
+// const sequelize = require('../config/db');
 const process = require("process");
 const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || "development";
@@ -16,9 +17,13 @@ try {
   if (config.use_env_variable) {
     sequelize = new Sequelize(process.env[config.use_env_variable], config);
   } else {
-    sequelize = new Sequelize(config.database, config.username, config.password, config);
+    sequelize = new Sequelize(
+      config.database,
+      config.username,
+      config.password,
+      config
+    );
   }
-
 } catch (error) {
   console.error("❌ Error initializing Sequelize:", error.message);
   process.exit(1);
@@ -27,14 +32,16 @@ try {
 sequelize
   .authenticate()
   .then(() => console.log("✅ Database connection successful"))
-  .catch(error => {
+  .catch((error) => {
     console.error("❌ Database connection error:", error.message);
     process.exit(1);
   });
 
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
 
 // ✅ Load models
-const modelFiles = fs.readdirSync(__dirname).filter(file => {
+const modelFiles = fs.readdirSync(__dirname).filter((file) => {
   return (
     file.indexOf(".") !== 0 &&
     file !== basename &&
@@ -42,7 +49,6 @@ const modelFiles = fs.readdirSync(__dirname).filter(file => {
     file.indexOf(".test.js") === -1
   );
 });
-
 
 modelFiles.forEach((file) => {
   try {
@@ -65,19 +71,17 @@ modelFiles.forEach((file) => {
 });
 
 // ✅ Associate models (AFTER all models are loaded)
-Object.keys(db).forEach(modelName => {
+Object.keys(db).forEach((modelName) => {
   if (db[modelName].associate) {
     try {
       db[modelName].associate(db);
     } catch (error) {
-      console.error(`❌ ERROR associating model "${modelName}": ${error.message}`);
+      console.error(
+        `❌ ERROR associating model "${modelName}": ${error.message}`
+      );
     }
   }
 });
-
-
-db.sequelize = sequelize;
-db.Sequelize = Sequelize;
 
 console.log("📦 Sequelize setup complete.");
 

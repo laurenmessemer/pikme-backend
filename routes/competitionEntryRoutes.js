@@ -1,10 +1,10 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const CompetitionEntryController = require("../controllers/competitionEntryController");
+const CompetitionEntryController = require('../controllers/competitionEntryController');
 
-
-const AWS = require("aws-sdk");
-require("dotenv").config();
+const AWS = require('aws-sdk');
+const isUserMiddleware = require('../middleware/isUserMiddleware');
+require('dotenv').config();
 
 // ✅ Initialize AWS SDK
 AWS.config.update({
@@ -16,32 +16,72 @@ AWS.config.update({
 // ✅ Create AWS S3 instance
 const s3 = new AWS.S3();
 
-
 // ✅ NEW ROUTE: Get Pre-Signed URL for Direct Upload
-router.get("/get-upload-url", CompetitionEntryController.getUploadURL);
+router.get(
+  '/get-upload-url',
+  isUserMiddleware,
+  CompetitionEntryController.getUploadURL
+);
 
-router.post("/update-image", CompetitionEntryController.updateImage);
+router.post(
+  '/update-image',
+  isUserMiddleware,
+  CompetitionEntryController.updateImage
+);
 
 // ✅ Confirm Payment
-router.post("/confirm-payment", CompetitionEntryController.confirmPayment);
+router.post(
+  '/confirm-payment',
+  isUserMiddleware,
+  CompetitionEntryController.confirmPayment
+);
 
 // ✅ Convert Pending Entry → Official Competition
-router.post("/enter", CompetitionEntryController.enterCompetition);
+router.post(
+  '/enter',
+  isUserMiddleware,
+  CompetitionEntryController.enterCompetition
+);
 
 // ✅ Get Competition Status
-router.get("/status", CompetitionEntryController.getCompetitionStatus);
+router.get(
+  '/status',
+  isUserMiddleware,
+  CompetitionEntryController.getCompetitionStatus
+);
 
 // ✅ Confirm Submission (Marks Competition as Complete)
-router.post("/confirm", CompetitionEntryController.confirmSubmission);
+router.post(
+  '/confirm',
+  isUserMiddleware,
+  CompetitionEntryController.confirmSubmission
+);
 
 // ✅ Get Invite for Competition
-router.get("/invite/:inviteLink", CompetitionEntryController.getInviteCompetition);
+router.get(
+  '/invite/:inviteLink',
+  isUserMiddleware,
+  CompetitionEntryController.getInviteCompetition
+);
+
+// ✅ Get Invite for Competition
+router.get(
+  '/validate-invite-code/:inviteLink',
+  CompetitionEntryController.validateInviteCode
+);
 
 // ✅ Accept Invite for Competition
-router.post("/accept-invite", CompetitionEntryController.acceptInvite);
+router.post(
+  '/accept-invite',
+  isUserMiddleware,
+  CompetitionEntryController.acceptInvite
+);
 
 // ✅ Send Invite Email
-router.post("/send-invite", CompetitionEntryController.emailInviteLink);
-
+router.post(
+  '/send-invite',
+  isUserMiddleware,
+  CompetitionEntryController.emailInviteLink
+);
 
 module.exports = router;

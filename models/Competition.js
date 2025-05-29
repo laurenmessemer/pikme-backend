@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
   const Competition = sequelize.define(
-    "Competition",
+    'Competition',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -10,50 +10,54 @@ module.exports = (sequelize, DataTypes) => {
       contest_id: {
         type: DataTypes.INTEGER,
         references: {
-          model: "Contests",
-          key: "id",
+          model: 'Contests',
+          key: 'id',
         },
         allowNull: false,
-        onDelete: "CASCADE",
+        onDelete: 'CASCADE',
       },
       user1_id: {
         type: DataTypes.INTEGER,
         references: {
-          model: "Users",
-          key: "id",
+          model: 'Users',
+          key: 'id',
         },
         allowNull: false,
-        onDelete: "CASCADE",
+        onDelete: 'CASCADE',
       },
       user2_id: {
         type: DataTypes.INTEGER,
         references: {
-          model: "Users",
-          key: "id",
+          model: 'Users',
+          key: 'id',
         },
-        allowNull: true, 
-        onDelete: "CASCADE",
+        allowNull: true,
+        onDelete: 'CASCADE',
       },
       user1_image: {
         type: DataTypes.TEXT,
-        allowNull: false, 
+        allowNull: false,
       },
       user2_image: {
         type: DataTypes.TEXT,
-        allowNull: true, 
+        allowNull: true,
       },
       match_type: {
-        type: DataTypes.ENUM("pick_random", "invite_friend"),
-        allowNull: false, 
+        type: DataTypes.ENUM('pick_random', 'invite_friend'),
+        allowNull: false,
       },
       invite_link: {
-        type: DataTypes.STRING, 
+        type: DataTypes.STRING,
         allowNull: true,
         unique: true,
       },
+      invite_url: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
       status: {
-        type: DataTypes.ENUM("Waiting", "Active", "Complete"),
-        defaultValue: "Waiting", 
+        type: DataTypes.ENUM('Waiting', 'Active', 'Complete'),
+        defaultValue: 'Waiting',
       },
       votes_user1: {
         type: DataTypes.INTEGER,
@@ -65,26 +69,51 @@ module.exports = (sequelize, DataTypes) => {
       },
       winner_username: {
         type: DataTypes.STRING,
-        allowNull: true, 
+        allowNull: true,
       },
       winner_earnings: {
         type: DataTypes.DECIMAL(10, 2),
         defaultValue: 0.0,
       },
+      invited_friend_email: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      invited_friend_name: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      invite_accepted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
     },
     {
       timestamps: true,
-      tableName: "Competitions",
+      tableName: 'Competitions',
     }
   );
 
   Competition.associate = function (models) {
-    Competition.belongsTo(models.Contest, { foreignKey: "contest_id", onDelete: "CASCADE" });
-    Competition.belongsTo(models.User, { as: "User1", foreignKey: "user1_id", onDelete: "CASCADE" });
-    Competition.belongsTo(models.User, { as: "User2", foreignKey: "user2_id", onDelete: "CASCADE" });
-    Competition.hasMany(models.Report, { foreignKey: "competition_id" });
-    Competition.hasMany(models.Vote, { foreignKey: "competition_id", onDelete: "CASCADE" });
-
+    Competition.belongsTo(models.Contest, {
+      foreignKey: 'contest_id',
+      onDelete: 'CASCADE',
+    });
+    Competition.belongsTo(models.User, {
+      as: 'User1',
+      foreignKey: 'user1_id',
+      onDelete: 'CASCADE',
+    });
+    Competition.belongsTo(models.User, {
+      as: 'User2',
+      foreignKey: 'user2_id',
+      onDelete: 'CASCADE',
+    });
+    Competition.hasMany(models.Report, { foreignKey: 'competition_id' });
+    Competition.hasMany(models.Vote, {
+      foreignKey: 'competition_id',
+      onDelete: 'CASCADE',
+    });
   };
 
   return Competition;

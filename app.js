@@ -1,6 +1,4 @@
 require("dotenv").config();
-console.log("DB HOST:", process.env.DB_HOST);
-console.log("Bucket Name:", process.env.S3_BUCKET_NAME); 
 const express = require("express");
 const sequelize = require("./config/db");
 const path = require("path");
@@ -13,8 +11,8 @@ const { recordWeeklyVoterStats } = require("./utils/recordWeeklyVoterStats");
 
 // ✅ Import Routes
 const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes"); 
-const themeRoutes = require("./routes/themeRoutes"); 
+const userRoutes = require("./routes/userRoutes");
+const themeRoutes = require("./routes/themeRoutes");
 const contestRoutes = require("./routes/contestRoutes");
 const competitionEntryRoutes = require("./routes/competitionEntryRoutes");
 const walletRoutes = require("./routes/walletRoutes");
@@ -25,25 +23,26 @@ const adminCompetitionRoutes = require("./routes/adminCompetitionRoutes");
 const webhookRoutes = require("./webhook");
 const referralRoutes = require("./routes/referralRoutes");
 const activityRoutes = require("./routes/activityRoutes");
-const reportRoutes = require("./routes/reportRoutes"); 
-const contactRoutes = require("./routes/contactRoutes"); 
-const metricsRoutes = require("./routes/metricsRoutes"); 
+const reportRoutes = require("./routes/reportRoutes");
+const contactRoutes = require("./routes/contactRoutes");
+const metricsRoutes = require("./routes/metricsRoutes");
 
 const app = express();
-app.use(fileUpload()); 
+app.use(fileUpload());
 
-
-app.get('/health', (req, res) => {
-  res.status(200).send('OK');
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
 });
-
 
 // ✅ Middleware
 const cors = require("cors");
+const determineWinnersFunction = require("./utils/determineWinners");
 
 const allowedOrigins = [
+  "https://pikme.zignuts.dev",
   "https://www.playpikme.com",
-  "http://localhost:5173" // 👈 Add this
+  "http://localhost:5173",
+  "http://localhost:3000",
 ];
 
 const corsOptions = {
@@ -58,7 +57,14 @@ const corsOptions = {
   },
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
-  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"]
+  allowedHeaders: [
+    "Origin",
+    "X-Requested-With",
+    "Content-Type",
+    "Accept",
+    "Authorization",
+    "ngrok-skip-browser-warning",
+  ],
 };
 
 // ✅ Use CORS Middleware
@@ -72,7 +78,11 @@ app.use((req, res, next) => {
   }
 
   res.header("Access-Control-Allow-Methods", "GET,HEAD,PUT,PATCH,POST,DELETE");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+    "ngrok-skip-browser-warning"
+  );
   res.header("Access-Control-Allow-Credentials", "true");
 
   if (req.method === "OPTIONS") {
@@ -83,17 +93,17 @@ app.use((req, res, next) => {
 });
 
 // ✅ Increase Payload Size Limit to Prevent 413 Error
-app.use(express.json({ limit: "20mb" })); 
+app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ limit: "20mb", extended: true }));
 
 // ✅ API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes); // ✅ Add User Routes
-app.use("/api/themes", themeRoutes); 
+app.use("/api/themes", themeRoutes);
 app.use("/api/contests", contestRoutes);
 app.use("/api/competition-entry", competitionEntryRoutes);
 app.use("/api/wallet", walletRoutes);
-app.use("/api/vote", voteRoutes); 
+app.use("/api/vote", voteRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/winners", WinnersRoutes);
 app.use("/api/leaderboard", LeaderboardRoutes);
@@ -101,11 +111,9 @@ app.use("/api/competitions", adminCompetitionRoutes);
 app.use("/webhook", webhookRoutes);
 app.use("/api/referral", referralRoutes);
 app.use("/api/activity", activityRoutes);
-app.use("/api/reports", reportRoutes); 
+app.use("/api/reports", reportRoutes);
 app.use("/api", contactRoutes);
 app.use("/api/metrics", metricsRoutes);
-
-
 
 // ✅ Default Route
 app.get("/", (req, res) => {
@@ -120,7 +128,9 @@ app.use("*", (req, res) => {
 // ✅ Global Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error("❌ Server Error:", err.message);
-  res.status(err.status || 500).json({ error: err.message || "Internal Server Error" });
+  res
+    .status(err.status || 500)
+    .json({ error: err.message || "Internal Server Error" });
 });
 
 // ✅ Cron Job: Save Weekly Voter Stats Every Monday 12:05 AM
@@ -128,25 +138,22 @@ cron.schedule("5 0 * * 1", async () => {
   console.log("📊 Running weekly voter stats cron...");
   try {
     await recordWeeklyVoterStats();
+    await determineWinnersFunction();
     console.log("✅ Weekly voter stats recorded.");
   } catch (err) {
     console.error("❌ Failed to record weekly voter stats:", err.message);
   }
 });
 
-
 // ✅ Sync Database and Start Server
 sequelize
-  .authenticate()
-  .then(() => {
-    console.log("✅ Database connected successfully");
-    return sequelize.sync({ alter: true });  // ❗ Only use `{ alter: true }` in dev
-  })
-  .then(() => {
+  .sync({ alter: true }) // ❗ Only use `{ alter: true }` in dev
+  .then(async () => {
     console.log("✅ Database synced successfully");
 
     const PORT = process.env.PORT || 5004;
-    app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server running on http://0.0.0.0:${PORT}`));
-    
+    app.listen(PORT, () =>
+      console.log(`🚀 Server running on http://127.0.0.1:${PORT}`)
+    );
   })
   .catch((err) => console.error("❌ Database sync error:", err));

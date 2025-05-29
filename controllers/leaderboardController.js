@@ -1,131 +1,143 @@
-const { Competition, Contest, Theme, User } = require("../models");
-const { Op } = require("sequelize");
+const { Competition, Contest, Theme, User } = require('../models');
+const { Op } = require('sequelize');
+const crypto = require('crypto');
+const sendInviteEmail = require('../utils/sendInviteEmail');
 
 exports.getUserSubmissions = async (req, res) => {
-    try {
-        const { userId } = req.query;
+  try {
+    const { userId } = req.query;
 
-        if (!userId) {
-          return res.json({ success: true, submissions: [] });
-        }
-        
-
-        // ✅ Fetch competitions where the user is user1 or user2
-        const competitions = await Competition.findAll({
-            where: {
-                [Op.or]: [{ user1_id: userId }, { user2_id: userId }],
-            },
-            include: [
-                {
-                  model: Contest,
-                  attributes: ["status"],
-                  include: [
-                    {
-                      model: Theme,
-                      as: "Theme",
-                      attributes: ["name"],
-                    },
-                  ],
-                },
-                {
-                  model: User,
-                  as: "User1",
-                  attributes: ["id", "username"],
-                },
-                {
-                  model: User,
-                  as: "User2",
-                  attributes: ["id", "username"],
-                },
-              ],              
-            order: [["createdAt", "DESC"]],
-        });
-
-        // ✅ Format response
-        const formattedSubmissions = competitions.map((comp) => ({
-            id: comp.id,
-            image: comp.user1_id === parseInt(userId) ? comp.user1_image : comp.user2_image,
-            username:
-                comp.user1_id === parseInt(userId)
-                    ? comp.User1?.username || "Me"
-                    : comp.User2?.username || "Me",
-            theme: comp.Contest?.Theme?.name || "Unknown Theme", // ✅ Fetch theme name correctly
-            contestStatus: comp.Contest.status, // ✅ Fetch contest status from Contest
-            position: "N/A", // ✅ Update if needed
-            payout: "0", // ✅ Update if payouts are tracked
-        }));
-
-        return res.json({ success: true, submissions: formattedSubmissions });
-    } catch (error) {
-        console.error("Error fetching user submissions:", error);
-        res.status(500).json({ error: "Server error while fetching submissions." });
+    if (!userId) {
+      return res.json({ success: true, submissions: [] });
     }
+
+    // ✅ Fetch competitions where the user is user1 or user2
+    const competitions = await Competition.findAll({
+      where: {
+        [Op.or]: [{ user1_id: userId }, { user2_id: userId }],
+      },
+      include: [
+        {
+          model: Contest,
+          attributes: ['status'],
+          include: [
+            {
+              model: Theme,
+              as: 'Theme',
+              attributes: ['name'],
+            },
+          ],
+        },
+        {
+          model: User,
+          as: 'User1',
+          attributes: ['id', 'username'],
+        },
+        {
+          model: User,
+          as: 'User2',
+          attributes: ['id', 'username'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    // ✅ Format response
+    const formattedSubmissions = competitions.map((comp) => ({
+      id: comp.id,
+      image:
+        comp.user1_id === parseInt(userId)
+          ? comp.user1_image
+          : comp.user2_image,
+      username:
+        comp.user1_id === parseInt(userId)
+          ? comp.User1?.username || 'Me'
+          : comp.User2?.username || 'Me',
+      theme: comp.Contest?.Theme?.name || 'Unknown Theme', // ✅ Fetch theme name correctly
+      contestStatus: comp.Contest.status, // ✅ Fetch contest status from Contest
+      position: 'N/A', // ✅ Update if needed
+      payout: '0', // ✅ Update if payouts are tracked
+    }));
+
+    return res.json({ success: true, submissions: formattedSubmissions });
+  } catch (error) {
+    console.error('Error fetching user submissions:', error);
+    res.status(500).json({ error: 'Server error while fetching submissions.' });
+  }
 };
 
 exports.getWinners = async (req, res) => {
-    try {
-        console.log("📢 Fetching winners from the database...");
+  try {
+    const winners = await Competition.findAll({
+      where: { status: 'Complete' }, // ✅ Only fetch completed competitions
+      include: [
+        {
+          model: Contest,
+          attributes: [
+            'id',
+            'theme_id',
+            'entry_fee',
+            'voting_deadline',
+            'contest_live_date',
+            'total_entries',
+          ],
+          include: [
+            {
+              model: Theme,
+              as: 'Theme', // ✅ Ensure correct alias matching in the query
+              attributes: ['name'], // ✅ Fetch the theme name
+            },
+          ],
+        },
+      ],
+      order: [['updatedAt', 'DESC']],
+    });
 
-        const winners = await Competition.findAll({
-            where: { status: "Complete" },  // ✅ Only fetch completed competitions
-            include: [
-                {
-                    model: Contest,
-                    attributes: ["id", "theme_id", "entry_fee", "voting_deadline", "contest_live_date", "total_entries"],
-                    include: [
-                        {
-                            model: Theme, 
-                            as: "Theme",  // ✅ Ensure correct alias matching in the query
-                            attributes: ["name"], // ✅ Fetch the theme name
-                        },
-                    ],
-                },
-            ],
-            order: [["updatedAt", "DESC"]],
-        });
-
-        if (!winners || winners.length === 0) {
-            return res.json({ success: true, winners: [] });
-        }
-
-        // ✅ Map and structure the winners data
-        const formattedWinners = winners.map((comp) => {
-            // Determine winner based on vote counts
-            let winnerImage = "https://photo-contest-storage.s3.us-east-2.amazonaws.com/uploads/default.jpg"; // Default placeholder
-            if (comp.votes_user1 > comp.votes_user2) {
-                winnerImage = comp.user1_image;
-            } else if (comp.votes_user2 > comp.votes_user1) {
-                winnerImage = comp.user2_image;
-            }
-
-            return {
-                startDate: new Date(comp.Contest.contest_live_date).toISOString(),
-                endDate: new Date(comp.Contest.voting_deadline).toISOString(),
-                image: winnerImage, // ✅ Pulling winner's image
-                username: comp.winner_username, // ✅ Directly from the competition
-                theme: comp.Contest.Theme?.name || "Unknown Theme", // ✅ Fetching from Theme model
-                payout: parseFloat(comp.winner_earnings) || 0, // ✅ Ensure it's a number
-                entries: comp.Contest.total_entries, // ✅ Pulling total entries from Contests table
-            };
-        });
-
-        console.log("🏆 Winners successfully fetched:", formattedWinners);
-        res.json({ success: true, winners: formattedWinners });
-
-    } catch (error) {
-        console.error("❌ Error fetching winners:", error);
-        res.status(500).json({ success: false, message: "Server error while fetching winners." });
+    if (!winners || winners.length === 0) {
+      return res.json({ success: true, winners: [] });
     }
+
+    // ✅ Map and structure the winners data
+    const formattedWinners = winners.map((comp) => {
+      // Determine winner based on vote counts
+      let winnerImage =
+        'https://photo-contest-storage.s3.us-east-2.amazonaws.com/uploads/default.jpg'; // Default placeholder
+      if (comp.votes_user1 > comp.votes_user2) {
+        winnerImage = comp.user1_image;
+      } else if (comp.votes_user2 > comp.votes_user1) {
+        winnerImage = comp.user2_image;
+      }
+
+      return {
+        startDate: new Date(comp.Contest.contest_live_date).toISOString(),
+        endDate: new Date(comp.Contest.voting_deadline).toISOString(),
+        image: winnerImage, // ✅ Pulling winner's image
+        username: comp.winner_username, // ✅ Directly from the competition
+        theme: comp.Contest.Theme?.name || 'Unknown Theme', // ✅ Fetching from Theme model
+        payout: parseFloat(comp.winner_earnings) || 0, // ✅ Ensure it's a number
+        entries: comp.Contest.total_entries, // ✅ Pulling total entries from Contests table
+      };
+    });
+
+    res.json({ success: true, winners: formattedWinners });
+  } catch (error) {
+    console.error('❌ Error fetching winners:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching winners.',
+    });
+  }
 };
 
 exports.getLiveContests = async (req, res) => {
   try {
-    console.log("📢 Fetching live contests...");
-
     const contest = await Contest.findOne({
-      where: { status: "Live" },
-      include: [{ model: Theme, as: "Theme", attributes: ["name"] }],
-      order: [["contest_live_date", "DESC"]],
+      where: { status: 'Live' },
+      include: [{ model: Theme, as: 'Theme', attributes: ['name'] }],
+      order: [
+        ['contest_live_date', 'DESC'],
+        ['createdAt', 'DESC'],
+      ],
     });
 
     if (!contest) {
@@ -135,9 +147,9 @@ exports.getLiveContests = async (req, res) => {
     const competitions = await Competition.findAll({
       where: { contest_id: contest.id },
       include: [
-        { model: User, as: "User1", attributes: ["id", "username"] },
-        { model: User, as: "User2", attributes: ["id", "username"] }
-      ]
+        { model: User, as: 'User1', attributes: ['id', 'username'] },
+        { model: User, as: 'User2', attributes: ['id', 'username'] },
+      ],
     });
 
     const userMap = new Map();
@@ -146,14 +158,14 @@ exports.getLiveContests = async (req, res) => {
       const entries = [
         {
           id: comp.user1_id,
-          username: comp.User1?.username || "Unknown",
+          username: comp.User1?.username || 'Unknown',
           imageUrl: comp.user1_image,
           margin: comp.votes_user1 - (comp.votes_user2 || 0),
         },
         comp.user2_id && comp.user2_image
           ? {
               id: comp.user2_id,
-              username: comp.User2?.username || "Unknown",
+              username: comp.User2?.username || 'Unknown',
               imageUrl: comp.user2_image,
               margin: comp.votes_user2 - (comp.votes_user1 || 0),
             }
@@ -167,7 +179,7 @@ exports.getLiveContests = async (req, res) => {
             username,
             totalMargin: 0,
             images: [],
-            earnings: "0",
+            earnings: '0',
           });
         }
 
@@ -192,29 +204,27 @@ exports.getLiveContests = async (req, res) => {
       ? leaderboard.find((u) => u.id === userId)
       : null;
 
-    console.log("📤 Final leaderboard:", JSON.stringify(leaderboard, null, 2));
-  
     return res.json({
       success: true,
       contest: {
-        contestName: contest.Theme?.name || "Unknown Contest",
+        contestName: contest.Theme?.name || 'Unknown Contest',
         contestId: contest.id,
         entries: contest.total_entries,
         prizePool: `$${contest.prize_pool}`,
+        winnings: contest.winnings,
         leaderboard,
         userSubmission,
         maxWinners: 3,
       },
     });
   } catch (error) {
-    console.error("❌ Error fetching live contests:", error);
+    console.error('❌ Error fetching live contests:', error);
     return res.status(500).json({
       success: false,
-      message: "Server error while fetching live contests.",
+      message: 'Server error while fetching live contests.',
     });
   }
 };
-
 
 // exports.getLiveContests = async (req, res) => {
 //   try {
@@ -306,60 +316,205 @@ exports.getLiveContests = async (req, res) => {
 // };
 
 exports.getOpponentInfo = async (req, res) => {
-    try {
-      const { userId, competitionId } = req.query;
-  
-      if (!userId || !competitionId) {
-        return res.status(400).json({ error: "userId and competitionId are required." });
-      }
-  
-      const competition = await Competition.findByPk(competitionId, {
-        include: [
-          { model: User, as: "User1", attributes: ["id", "username"] },
-          { model: User, as: "User2", attributes: ["id", "username"] }
-        ]
-      });
-  
-      if (!competition) {
-        return res.status(404).json({ error: "Competition not found." });
-      }
-  
-      let opponent = null;
-  
-      if (String(competition.user1_id) === String(userId)) {
-        if (!competition.user2_id) {
-          return res.status(200).json({
-            opponent: null,
-            matchType: competition.match_type,
-            inviteLink: competition.invite_link || null
-          });
-        }
-        opponent = {
-          id: competition.User2?.id,
-          username: competition.User2?.username,
-          imageUrl: competition.user2_image,
-          votes: competition.votes_user2
-        };
-      } else if (String(competition.user2_id) === String(userId)) {
-        opponent = {
+  try {
+    const { userId, competitionId } = req.query;
+
+    if (!userId || !competitionId) {
+      return res
+        .status(400)
+        .json({ error: 'userId and competitionId are required.' });
+    }
+
+    const competition = await Competition.findByPk(competitionId, {
+      include: [
+        { model: User, as: 'User1', attributes: ['id', 'username'] },
+        { model: User, as: 'User2', attributes: ['id', 'username'] },
+      ],
+    });
+
+    if (!competition) {
+      return res.status(404).json({ error: 'Competition not found.' });
+    }
+
+    let opponent = null;
+    let currentUser = null;
+
+    if (String(competition.user1_id) === String(userId)) {
+      if (!competition.user2_id) {
+        currentUser = {
           id: competition.User1?.id,
           username: competition.User1?.username,
-          imageUrl: competition.user1_image,
-          votes: competition.votes_user1
+          imageUrl: competition.user1_image || '',
+          votes: competition.votes_user1 || 0,
         };
-      } else {
-        return res.status(403).json({ error: "User is not a participant in this competition." });
+        return res.status(200).json({
+          opponent: null,
+          currentUser,
+          matchType: competition.match_type,
+          inviteLink: competition.invite_link || null,
+          inviteUrl: competition.invite_url || null,
+        });
       }
-  
-      res.status(200).json({
-        opponent,
-        matchType: competition.match_type,
-        inviteLink: competition.invite_link || null
-      });
-  
-    } catch (error) {
-      console.error("❌ Error fetching opponent info:", error);
-      res.status(500).json({ error: "Internal server error." });
+      opponent = {
+        id: competition.User2?.id,
+        username: competition.User2?.username,
+        imageUrl: competition.user2_image,
+        votes: competition.votes_user2,
+      };
+      currentUser = {
+        id: competition.User1?.id,
+        username: competition.User1?.username,
+        imageUrl: competition.user1_image,
+        votes: competition.votes_user1,
+      };
+    } else if (String(competition.user2_id) === String(userId)) {
+      opponent = {
+        id: competition.User1?.id,
+        username: competition.User1?.username,
+        imageUrl: competition.user1_image,
+        votes: competition.votes_user1,
+      };
+      currentUser = {
+        id: competition.User2?.id,
+        username: competition.User2?.username,
+        imageUrl: competition.user2_image,
+        votes: competition.votes_user2,
+      };
+    } else {
+      return res
+        .status(403)
+        .json({ error: 'User is not a participant in this competition.' });
     }
-  };
-  
+
+    res.status(200).json({
+      opponent,
+      currentUser,
+      matchType: competition.match_type,
+      inviteLink: competition.invite_link || null,
+    });
+  } catch (error) {
+    console.error('❌ Error fetching opponent info:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+exports.reinviteOpponent = async (req, res) => {
+  try {
+    const { email, competitionId, invitee_name, match_type } = req.body;
+    let combinedLink;
+    let joinedExistingMatch = false;
+
+    const competition = await Competition.findOne({
+      where: {
+        id: competitionId,
+        status: 'Waiting',
+      },
+    });
+
+    if (!competition) {
+      return res
+        .status(404)
+        .json({ error: 'Competition not found or already started.' });
+    }
+
+    if (match_type === 'pick_random') {
+      const ongoingCompetition = await Competition.findOne({
+        where: {
+          contest_id: competition.contest_id,
+          match_type: 'pick_random',
+          user2_id: null,
+          status: 'Waiting',
+        },
+        order: [['createdAt', 'ASC']],
+      });
+
+      if (ongoingCompetition) {
+        ongoingCompetition.user2_id = competition.user1_id;
+        ongoingCompetition.user2_image = competition.user1_image;
+        ongoingCompetition.status = 'Active';
+        await ongoingCompetition.save();
+        joinedExistingMatch = true;
+
+        await competition.destroy();
+
+        return res.status(200).json({
+          message: 'Competition Joined Successfully!',
+          competition: ongoingCompetition,
+          joinedExistingMatch,
+        });
+      }
+
+      if (!ongoingCompetition && !competition.user2_id) {
+        // update the match type
+        competition.match_type = match_type;
+
+        // set the invite friend values to null
+        competition.invite_link = null;
+        competition.invite_url = null;
+        competition.invited_friend_email = null;
+        competition.invited_friend_name = null;
+        competition.invite_accepted = false;
+
+        await competition.save();
+
+        return res.status(200).json({
+          message: 'Competition Updated Successfully!',
+          competition: competition,
+          joinedExistingMatch: false,
+        });
+      }
+    } else {
+      if (!email || !competitionId) {
+        return res
+          .status(400)
+          .json({ error: 'Email and competitionId are required.' });
+      }
+
+      const inviteCode = crypto.randomBytes(6).toString('hex'); // e.g. "a1b2c3d4e5f6"
+      competition.invite_link = inviteCode;
+
+      if (email) {
+        const findOpponent = await User.findOne({
+          where: { email: email },
+          attributes: ['id'],
+        });
+
+        if (findOpponent?.id === req?.user?.id) {
+          return res
+            .status(400)
+            .json({ message: 'You cannot invite yourself in the game!' });
+        }
+
+        let queryString = `?invite_code=${inviteCode}`;
+
+        // page L for Login page, R for Register page
+        let inviteUrl = '';
+        if (findOpponent) {
+          inviteUrl = `${process.env.FRONTEND_URL}login`;
+          // queryString += `&email=${email}&page=L`;
+        } else {
+          inviteUrl = `${process.env.FRONTEND_URL}signup`;
+          // queryString += `&email=${email}&name=${invitee_name}&referralCode=${findUser.referral_code}&page=R`;
+        }
+
+        combinedLink = inviteUrl + queryString;
+
+        await sendInviteEmail(email, req?.user?.username || '', combinedLink);
+      }
+
+      competition.invite_url = combinedLink || null;
+      competition.invited_friend_email = email || null;
+      competition.invited_friend_name = invitee_name || null;
+      await competition.save();
+
+      res.status(200).json({
+        message: 'Invite link sent successfully.',
+        inviteLink: competition.invite_link || null,
+        inviteUrl: combinedLink || null,
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error fetching opponent info:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};

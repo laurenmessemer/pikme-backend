@@ -1,7 +1,16 @@
-const { Competition, Contest, Wallet, User, Op, PendingCompetition } = require("../models");
-const crypto = require("crypto");
-const AWS = require("aws-sdk");
-const dotenv = require("dotenv");
+const {
+  Competition,
+  Contest,
+  Wallet,
+  User,
+  Op,
+  PendingCompetition,
+} = require('../models');
+const crypto = require('crypto');
+const AWS = require('aws-sdk');
+const dotenv = require('dotenv');
+const jwt = require('jsonwebtoken');
+const sendInviteEmail = require('../utils/sendInviteEmail');
 
 // ✅ Load environment variables from .env file
 dotenv.config();
@@ -14,14 +23,13 @@ AWS.config.update({
 
 const s3 = new AWS.S3();
 
-
 // ✅ Fix: Ensure `getUploadURL` is properly defined before exporting
 const getUploadURL = async (req, res) => {
   try {
     const { user_id, contest_id, match_type, fileType } = req.query;
 
     if (!user_id || !contest_id || !match_type) {
-      return res.status(400).json({ message: "Missing required parameters." });
+      return res.status(400).json({ message: 'Missing required parameters.' });
     }
 
     const fileKey = `uploads/${Date.now()}-${user_id}.jpg`;
@@ -29,20 +37,20 @@ const getUploadURL = async (req, res) => {
     const params = {
       Bucket: process.env.S3_BUCKET_NAME,
       Key: fileKey,
-      ACL: "public-read",
+      ACL: 'public-read',
       Expires: 300, // 5 minutes
-      ContentType: fileType || "image/jpeg",
-      CacheControl: "public, max-age=31536000, immutable",
+      ContentType: fileType || 'image/jpeg',
+      CacheControl: 'public, max-age=31536000, immutable',
     };
 
-    const uploadURL = await s3.getSignedUrlPromise("putObject", params);
+    const uploadURL = await s3.getSignedUrlPromise('putObject', params);
 
     // ✅ Store entry in database (without confirming payment yet)
     const pendingEntry = await PendingCompetition.create({
       user1_id: user_id,
       contest_id,
       match_type,
-      status: "waiting",
+      status: 'waiting',
       user1_image: `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`,
     });
 
@@ -51,46 +59,44 @@ const getUploadURL = async (req, res) => {
       fileKey,
       pendingEntryId: pendingEntry.id,
     });
-
   } catch (error) {
-    console.error("❌ Error generating upload URL:", error);
-    res.status(500).json({ message: "Error generating upload URL", error: error.message });
+    console.error('❌ Error generating upload URL:', error);
+    res
+      .status(500)
+      .json({ message: 'Error generating upload URL', error: error.message });
   }
 };
 
-
 const updateImage = async (req, res) => {
   try {
-    console.log("🛠️ Received request to update image:", req.body);
-
     const { pendingEntryId, imageUrl } = req.body;
 
     if (!pendingEntryId || !imageUrl) {
-      console.error("❌ Missing required fields:", { pendingEntryId, imageUrl });
-      return res.status(400).json({ message: "Missing required fields." });
+      console.error('❌ Missing required fields:', {
+        pendingEntryId,
+        imageUrl,
+      });
+      return res.status(400).json({ message: 'Missing required fields.' });
     }
 
     const pendingEntry = await PendingCompetition.findByPk(pendingEntryId);
 
     if (!pendingEntry) {
-      console.error("❌ Pending entry not found:", pendingEntryId);
-      return res.status(404).json({ message: "Pending entry not found!" });
+      console.error('❌ Pending entry not found:', pendingEntryId);
+      return res.status(404).json({ message: 'Pending entry not found!' });
     }
-
-    console.log("🔍 Existing entry BEFORE update:", pendingEntry.toJSON());
 
     // ✅ Explicitly update only the user1_image field
     pendingEntry.user1_image = imageUrl;
 
-    await pendingEntry.save({ fields: ["user1_image"] });
+    await pendingEntry.save({ fields: ['user1_image'] });
 
-    console.log("✅ Entry AFTER update:", pendingEntry.toJSON()); // Verify change
-
-    res.status(200).json({ message: "Image URL updated successfully!" });
-
+    res.status(200).json({ message: 'Image URL updated successfully!' });
   } catch (error) {
-    console.error("❌ Error updating image URL:", error);
-    res.status(500).json({ message: "Error updating image URL", error: error.message });
+    console.error('❌ Error updating image URL:', error);
+    res
+      .status(500)
+      .json({ message: 'Error updating image URL', error: error.message });
   }
 };
 
@@ -101,95 +107,106 @@ const uploadImage = async (req, res) => {
     const imageFile = req.file;
 
     if (!user_id || !contest_id || !imageFile || !match_type) {
-      return res.status(400).json({ message: "Missing required fields." });
+      return res.status(400).json({ message: 'Missing required fields.' });
     }
-
-    console.log("✅ File Uploaded to S3:", imageFile);
 
     const pendingEntry = await PendingCompetition.create({
       user1_id: user_id,
       contest_id,
       match_type,
-      status: "waiting",
+      status: 'waiting',
       user1_image: imageFile.location, // ✅ Store S3 URL
     });
 
     res.status(201).json({
-      message: "Image uploaded successfully!",
+      message: 'Image uploaded successfully!',
       pendingEntryId: pendingEntry.id,
       imageUrl: imageFile.location, // ✅ Send S3 URL to frontend
     });
-
   } catch (error) {
-    console.error("❌ Error uploading image:", error);
-    res.status(500).json({ message: "Error uploading image", error: error.message });
+    console.error('❌ Error uploading image:', error);
+    res
+      .status(500)
+      .json({ message: 'Error uploading image', error: error.message });
   }
 };
 
 // ✅ Fix: Define all functions before exporting them
 const confirmPayment = async (req, res) => {
   try {
-    console.log("🛠️ Incoming Confirm Payment Request:", req.body);
+    const {
+      user_id,
+      contest_id,
+      entry_fee,
+      match_type,
+      email = '',
+      invitee_name = '',
+    } = req.body;
 
-    const { user_id, contest_id, entry_fee, match_type } = req.body;
-    console.log("🧠 Confirm Payment - match_type received:", match_type);
-
+    let combinedLink;
 
     if (!user_id || !contest_id || entry_fee === undefined || !match_type) {
-      console.error("❌ Missing required fields:", { user_id, contest_id, entry_fee, match_type });
-      return res.status(400).json({ message: "Missing required fields." });
+      console.error('❌ Missing required fields:', {
+        user_id,
+        contest_id,
+        entry_fee,
+        match_type,
+      });
+      return res.status(400).json({ message: 'Missing required fields.' });
     }
 
     const pendingEntry = await PendingCompetition.findOne({
-      where: { user1_id: user_id, contest_id, status: "waiting" },
+      where: { user1_id: user_id, contest_id, status: 'waiting' },
+      order: [['id', 'DESC']],
     });
 
     if (!pendingEntry) {
-      console.error("❌ No pending entry found for:", { user_id, contest_id });
-      return res.status(404).json({ message: "No pending image found!" });
+      console.error('❌ No pending entry found for:', { user_id, contest_id });
+      return res.status(404).json({ message: 'No pending image found!' });
     }
 
     const wallet = await Wallet.findOne({ where: { user_id } });
 
     if (!wallet) {
-      console.error("❌ Wallet not found for user:", user_id);
-      return res.status(404).json({ message: "Wallet not found!" });
+      console.error('❌ Wallet not found for user:', user_id);
+      return res.status(404).json({ message: 'Wallet not found!' });
     }
 
     if (wallet.token_balance < entry_fee) {
-      console.error("❌ Insufficient tokens for user:", user_id);
-      return res.status(400).json({ message: "Insufficient tokens!" });
+      console.error('❌ Insufficient tokens for user:', user_id);
+      return res.status(400).json({ message: 'Insufficient tokens!' });
     }
 
     // ✅ Deduct tokens and update wallet
     wallet.token_balance -= entry_fee;
     await wallet.save();
-    console.log("✅ Wallet updated! New balance:", wallet.token_balance);
 
     // ✅ Mark entry as accepted and update match type
-    pendingEntry.status = "accepted";
+    pendingEntry.status = 'accepted';
     pendingEntry.match_type = match_type;
     await pendingEntry.save();
-
-    console.log(`✅ Entry accepted for user ${user_id}. Now entering competition...`);
 
     // 🔥 **Immediately attempt to enter the competition**
     let competition = null;
     let joinedExistingMatch = false;
 
-    if (match_type === "pick_random") {
+    if (match_type === 'pick_random') {
       competition = await Competition.findOne({
-        where: { contest_id, match_type: "pick_random", user2_id: null, status: "Waiting" },
-        order: [["createdAt", "ASC"]],
+        where: {
+          contest_id,
+          match_type: 'pick_random',
+          user2_id: null,
+          status: 'Waiting',
+        },
+        order: [['createdAt', 'ASC']],
       });
 
       if (competition) {
         competition.user2_id = user_id;
         competition.user2_image = pendingEntry.user1_image;
-        competition.status = "Active";
+        competition.status = 'Active';
         await competition.save();
         joinedExistingMatch = true;
-        console.log(`✅ User ${user_id} matched into existing competition ${competition.id}`);
       }
     }
 
@@ -199,33 +216,69 @@ const confirmPayment = async (req, res) => {
         user1_id: user_id,
         user1_image: pendingEntry.user1_image,
         match_type, // ✅ Pass match_type properly
-        status: "Waiting",
+        status: 'Waiting',
       });
 
-      if (match_type === "invite_friend") {
-        const inviteCode = crypto.randomBytes(6).toString("hex"); // e.g. "a1b2c3d4e5f6"
-          competition.invite_link = inviteCode;
-          await competition.save();
-      }
+      if (match_type === 'invite_friend') {
+        const inviteCode = crypto.randomBytes(6).toString('hex'); // e.g. "a1b2c3d4e5f6"
+        competition.invite_link = inviteCode;
 
-      console.log(`✅ New competition created with ID ${competition.id} for user ${user_id}`);
+        if (email) {
+          const findUser = await User.findOne({
+            where: { id: user_id },
+          });
+
+          const findOpponent = await User.findOne({
+            where: { email: email },
+          });
+
+          if (findOpponent?.id === user_id) {
+            return res
+              .status(400)
+              .json({ message: 'You cannot invite yourself in the game!' });
+          }
+
+          let queryString = `?invite_code=${inviteCode}`;
+
+          // page L for Login page, R for Register page
+          let inviteUrl = '';
+          if (findOpponent) {
+            inviteUrl = `${process.env.FRONTEND_URL}login`;
+            // queryString += `&email=${findOpponent.email}&page=L`;
+          } else {
+            inviteUrl = `${process.env.FRONTEND_URL}signup`;
+            // queryString += `&email=${email}&name=${invitee_name}&referralCode=${findUser.referral_code}&page=R`;
+          }
+
+          combinedLink = inviteUrl + queryString;
+
+          await sendInviteEmail(email, req?.user?.username || '', combinedLink);
+        }
+
+        competition.invite_url = combinedLink || null;
+        competition.invited_friend_email = email || null;
+        competition.invited_friend_name = invitee_name || null;
+        await competition.save();
+      }
     }
 
     // ✅ Remove pending entry since user has entered a competition
     await PendingCompetition.destroy({ where: { id: pendingEntry.id } });
 
     res.status(200).json({
-      message: "Payment confirmed, competition entered!",
+      message: 'Payment confirmed, competition entered!',
       new_balance: wallet.token_balance,
       match_type: pendingEntry.match_type,
       competition,
-      inviteLink: competition.invite_link || null,
+      inviteLink: competition?.invite_link || null,
+      inviteUrl: combinedLink || null,
       joinedExistingMatch,
     });
-
   } catch (error) {
-    console.error("❌ Error confirming payment:", error);
-    res.status(500).json({ message: "Error confirming payment.", error: error.message });
+    console.error('❌ Error confirming payment:', error);
+    res
+      .status(500)
+      .json({ message: 'Error confirming payment.', error: error.message });
   }
 };
 
@@ -234,31 +287,36 @@ const enterCompetition = async (req, res) => {
     const { user_id, contest_id } = req.body;
 
     if (!user_id || !contest_id) {
-      return res.status(400).json({ message: "Missing required fields." });
+      return res.status(400).json({ message: 'Missing required fields.' });
     }
 
     const pendingEntry = await PendingCompetition.findOne({
-      where: { user1_id: user_id, contest_id, status: "payment_confirmed" },
+      where: { user1_id: user_id, contest_id, status: 'payment_confirmed' },
     });
 
     if (!pendingEntry) {
-      return res.status(404).json({ message: "No confirmed entry found!" });
+      return res.status(404).json({ message: 'No confirmed entry found!' });
     }
 
     const match_type = pendingEntry.match_type;
     let competition = null;
     let joinedExistingMatch = false;
 
-    if (match_type === "pick_random") {
+    if (match_type === 'pick_random') {
       competition = await Competition.findOne({
-        where: { contest_id, match_type: "pick_random", user2_id: null, status: "Waiting" },
-        order: [["createdAt", "ASC"]],
+        where: {
+          contest_id,
+          match_type: 'pick_random',
+          user2_id: null,
+          status: 'Waiting',
+        },
+        order: [['createdAt', 'ASC']],
       });
 
       if (competition) {
         competition.user2_id = user_id;
         competition.user2_image = pendingEntry.user1_image;
-        competition.status = "Active";
+        competition.status = 'Active';
         await competition.save();
         joinedExistingMatch = true;
       }
@@ -270,10 +328,10 @@ const enterCompetition = async (req, res) => {
         user1_id: user_id,
         user1_image: pendingEntry.user1_image,
         match_type,
-        status: "Waiting",
+        status: 'Waiting',
       });
 
-      if (match_type === "invite_friend") {
+      if (match_type === 'invite_friend') {
         competition.invite_link = `https://pikme.com/invite/${competition.id}`;
         await competition.save();
       }
@@ -282,15 +340,16 @@ const enterCompetition = async (req, res) => {
     await PendingCompetition.destroy({ where: { id: pendingEntry.id } });
 
     res.status(201).json({
-      message: "Competition entry confirmed!",
+      message: 'Competition entry confirmed!',
       competition,
       inviteLink: competition.invite_link || null,
       joinedExistingMatch,
     });
-
   } catch (error) {
-    console.error("❌ Error entering competition:", error);
-    res.status(500).json({ message: "Error entering competition.", error: error.message });
+    console.error('❌ Error entering competition:', error);
+    res
+      .status(500)
+      .json({ message: 'Error entering competition.', error: error.message });
   }
 };
 
@@ -303,16 +362,19 @@ const getCompetitionStatus = async (req, res) => {
     });
 
     if (!competition) {
-      return res.status(404).json({ error: "Competition not found." });
+      return res.status(404).json({ error: 'Competition not found.' });
     }
 
     res.status(200).json({
       status: competition.status,
-      invite_link: competition.match_type === "invite_friend" ? competition.invite_link : null,
+      invite_link:
+        competition.match_type === 'invite_friend'
+          ? competition.invite_link
+          : null,
     });
   } catch (error) {
-    console.error("❌ Error fetching competition status:", error);
-    res.status(500).json({ error: "Error fetching competition status." });
+    console.error('❌ Error fetching competition status:', error);
+    res.status(500).json({ error: 'Error fetching competition status.' });
   }
 };
 
@@ -320,38 +382,154 @@ const confirmSubmission = async (req, res) => {
   try {
     const { user_id, contest_id } = req.body;
 
-    const entry = await Competition.findOne({ where: { contest_id, user1_id: user_id } });
-    if (!entry) return res.status(404).json({ message: "Entry not found!" });
+    const entry = await Competition.findOne({
+      where: { contest_id, user1_id: user_id },
+    });
+    if (!entry) return res.status(404).json({ message: 'Entry not found!' });
 
-    entry.status = "Complete";
+    entry.status = 'Complete';
     await entry.save();
 
-    res.status(200).json({ message: "Entry confirmed!" });
+    res.status(200).json({ message: 'Entry confirmed!' });
   } catch (error) {
-    console.error("❌ Error confirming submission:", error);
-    res.status(500).json({ message: "Error confirming submission.", error: error.message });
+    console.error('❌ Error confirming submission:', error);
+    res
+      .status(500)
+      .json({ message: 'Error confirming submission.', error: error.message });
   }
 };
-
 
 const getInviteCompetition = async (req, res) => {
   const { inviteLink } = req.params;
 
   try {
-    const competition = await Competition.findOne({ where: { invite_link: inviteLink } });
+    const competition = await Competition.findOne({
+      where: { invite_link: inviteLink },
+    });
 
     if (!competition) {
-      return res.status(404).json({ message: "Invite link is invalid or expired." });
+      return res
+        .status(404)
+        .json({ message: 'Invite link is invalid or expired.' });
+    }
+
+    if (
+      competition.user2_id &&
+      competition.user1_id !== req?.user?.id &&
+      competition.user2_id !== req?.user?.id
+    ) {
+      return res.status(400).json({
+        message: 'This competition already has a second participant.',
+      });
+    } else if (
+      competition.user2_id &&
+      competition?.user2_id !== req?.user?.id
+    ) {
+      const wallet = await Wallet.findOne({
+        where: { user_id: req?.users?.id },
+      });
+
+      competition.invite_accepted = true;
+
+      await competition.save();
+      return res.status(200).json({
+        message: 'You already joined this competition.',
+        alreadyJoined: true,
+        competition,
+        new_balance: wallet.token_balance,
+      });
+    }
+
+    competition.invite_accepted = true;
+    await competition.save();
+    res.status(200).json({ competition });
+  } catch (error) {
+    console.error('❌ Error fetching invite competition:', error);
+    res.status(500).json({ message: 'Failed to fetch invite competition.' });
+  }
+};
+
+const validateInviteCode = async (req, res) => {
+  const { inviteLink } = req.params;
+
+  try {
+    const competition = await Competition.findOne({
+      where: { invite_link: inviteLink },
+    });
+
+    if (!competition) {
+      return res
+        .status(404)
+        .json({ message: 'Invite link is invalid or expired.' });
     }
 
     if (competition.user2_id) {
-      return res.status(400).json({ message: "This competition already has a second participant." });
+      return res.status(400).json({
+        message: 'This competition already has a second participant.',
+      });
     }
 
-    res.status(200).json({ competition });
+    const inviterUser = await User.findOne({
+      where: { id: competition.user1_id },
+      attributes: ['id', 'referral_code'],
+    });
+
+    const authHeader = req.headers.authorization;
+
+    if (authHeader) {
+      const tokenParts = authHeader.split(' ');
+
+      if (tokenParts.length === 2 || tokenParts[0] === 'Bearer') {
+        try {
+          const decoded = jwt.verify(tokenParts[1], process.env.JWT_SECRET);
+          if (decoded || decoded.role === 'participant') {
+            // const user = await User.findByPk(decoded.id);
+            const user = await User.findOne({
+              where: { id: decoded.id },
+              attributes: [
+                'id',
+                'username',
+                'email',
+                'role',
+                'is_verified',
+                'suspended',
+              ],
+            });
+
+            if (user.email === competition.invited_friend_email) {
+              competition.invite_accepted = true;
+              await competition.save();
+              return res.status(200).json({
+                message: 'Invite code and User are valid.',
+                competition,
+                goToJoin: true,
+                user,
+              });
+            } else {
+              return res
+                .status(404)
+                .json({ message: 'Invite link is invalid or expired.' });
+            }
+          }
+        } catch (error) {
+          competition.invite_accepted = true;
+          await competition.save();
+          res.status(200).json({
+            competition,
+          });
+        }
+      }
+    } else {
+      competition.invite_accepted = true;
+      await competition.save();
+      res.status(200).json({
+        competition,
+        referralCode: inviterUser.referral_code,
+      });
+    }
   } catch (error) {
-    console.error("❌ Error fetching invite competition:", error);
-    res.status(500).json({ message: "Failed to fetch invite competition." });
+    console.error('❌ Error fetching invite competition:', error);
+    res.status(500).json({ message: 'Failed to fetch invite competition.' });
   }
 };
 
@@ -360,36 +538,48 @@ const acceptInvite = async (req, res) => {
     const { inviteLink, user_id, imageUrl } = req.body;
 
     if (!inviteLink || !user_id || !imageUrl) {
-      return res.status(400).json({ message: "Missing required fields." });
+      return res.status(400).json({ message: 'Missing required fields.' });
     }
 
     const competition = await Competition.findOne({
-      where: { invite_link: inviteLink, match_type: "invite_friend", status: "Waiting" },
+      where: {
+        invite_link: inviteLink,
+        match_type: 'invite_friend',
+        status: 'Waiting',
+      },
       include: [{ model: Contest }],
     });
 
     if (!competition) {
-      return res.status(404).json({ message: "Invalid or expired invite link." });
+      return res
+        .status(404)
+        .json({ message: 'Invalid or expired invite link.' });
     }
 
     if (competition.user1_id === user_id) {
-      return res.status(400).json({ message: "You cannot join your own invite." });
+      return res
+        .status(400)
+        .json({ message: 'You cannot join your own invite.' });
     }
 
     if (competition.user2_id) {
-      return res.status(400).json({ message: "This competition already has two players." });
+      return res
+        .status(400)
+        .json({ message: 'This competition already has two players.' });
     }
 
     const wallet = await Wallet.findOne({ where: { user_id } });
 
     if (!wallet) {
-      return res.status(404).json({ message: "Wallet not found." });
+      return res.status(404).json({ message: 'Wallet not found.' });
     }
 
     const entryFee = competition.Contest.entry_fee ?? 0;
 
     if (wallet.token_balance < entryFee) {
-      return res.status(400).json({ message: "Insufficient tokens to join competition." });
+      return res
+        .status(400)
+        .json({ message: 'Insufficient tokens to join competition.' });
     }
 
     // Deduct tokens
@@ -399,17 +589,20 @@ const acceptInvite = async (req, res) => {
     // Update competition
     competition.user2_id = user_id;
     competition.user2_image = imageUrl;
-    competition.status = "Active";
+    competition.status = 'Active';
     await competition.save();
 
     res.status(200).json({
-      message: "Successfully joined competition!",
+      message: 'Successfully joined competition!',
       competition,
       new_balance: wallet.token_balance,
     });
   } catch (error) {
-    console.error("❌ Error accepting invite:", error);
-    res.status(500).json({ message: "Server error accepting invite.", error: error.message });
+    console.error('❌ Error accepting invite:', error);
+    res.status(500).json({
+      message: 'Server error accepting invite.',
+      error: error.message,
+    });
   }
 };
 
@@ -418,18 +611,18 @@ const emailInviteLink = async (req, res) => {
     const { email, inviterName, inviteLink } = req.body;
 
     if (!email || !inviterName || !inviteLink) {
-      return res.status(400).json({ message: "Missing fields." });
+      return res.status(400).json({ message: 'Missing fields.' });
     }
 
     await sendInviteEmail(email, inviterName, inviteLink);
-    res.status(200).json({ message: "Invite email sent successfully." });
-
+    res.status(200).json({ message: 'Invite email sent successfully.' });
   } catch (error) {
-    console.error("❌ Error sending invite email:", error.message);
-    res.status(500).json({ message: "Failed to send invite email.", error: error.message });
+    console.error('❌ Error sending invite email:', error.message);
+    res
+      .status(500)
+      .json({ message: 'Failed to send invite email.', error: error.message });
   }
 };
-
 
 // ✅ Ensure all functions are correctly exported
 module.exports = {
@@ -443,4 +636,5 @@ module.exports = {
   getInviteCompetition, // ✅ Fix: Ensure this function exists before exporting
   acceptInvite,
   emailInviteLink,
+  validateInviteCode,
 };

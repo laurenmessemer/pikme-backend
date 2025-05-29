@@ -1,62 +1,56 @@
-const { Contest, User, Theme } = require("../models"); // ✅ Ensure Theme is imported
-const { Op, literal } = require("sequelize");
+const { Contest, User, Theme, Competition } = require('../models'); // ✅ Ensure Theme is imported
+const { Op, literal } = require('sequelize');
 
 // ✅ Fetch all contests
 const getAllContests = async (req, res) => {
   try {
     const contests = await Contest.findAll({
       include: [
-        { model: User, attributes: ["username", "email"] },
+        { model: User, attributes: ['username', 'email'] },
         {
           model: Theme,
-          as: "Theme",
-          attributes: ["id", "name", "cover_image_url"], // ⬅️ Grab theme ID, name, and image
+          as: 'Theme',
+          attributes: ['id', 'name', 'cover_image_url'], // ⬅️ Grab theme ID, name, and image
         },
       ],
     });
     res.json(contests);
   } catch (error) {
-    console.error("❌ Error fetching contests:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error('❌ Error fetching contests:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
 
 // ✅ Fetch a single contest by ID
 const getContestById = async (req, res) => {
   try {
-    console.log("📥 Incoming request to getContestById");
-    console.log("🧾 req.params:", req.params);
-
     const { id } = req.params;
 
     if (!id || isNaN(id)) {
-      console.warn("⚠️ Invalid or missing contest ID:", id);
-      return res.status(400).json({ error: "Invalid contest ID" });
+      console.warn('⚠️ Invalid or missing contest ID:', id);
+      return res.status(400).json({ error: 'Invalid contest ID' });
     }
 
     const contest = await Contest.findByPk(id, {
       include: [
-        { model: User, attributes: ["username", "email"] },
+        { model: User, attributes: ['username', 'email'] },
         {
           model: Theme,
-          as: "Theme",
-          attributes: ["name", "description", "cover_image_url"]
-        }
+          as: 'Theme',
+          attributes: ['name', 'description', 'cover_image_url'],
+        },
       ],
     });
 
     if (!contest) {
-      console.warn("⚠️ No contest found for ID:", id);
-      return res.status(404).json({ error: "Contest not found" });
+      console.warn('⚠️ No contest found for ID:', id);
+      return res.status(404).json({ error: 'Contest not found' });
     }
 
-    console.log("✅ Contest found:", contest.id);
     res.json(contest);
-
   } catch (error) {
-    console.error("❌ Error fetching contest by ID:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error('❌ Error fetching contest by ID:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
@@ -65,29 +59,54 @@ const getLiveAndUpcomingContests = async (req, res) => {
     const contests = await Contest.findAll({
       where: {
         status: {
-          [Op.or]: ["Live", "Upcoming"],
+          [Op.or]: ['Live', 'Upcoming'],
+        },
+        submission_deadline: {
+          [Op.gt]: new Date(),
+        },
+        contest_live_date: {
+          [Op.lt]: new Date(),
         },
       },
       include: [
         {
           model: Theme,
-          as: "Theme",
-          attributes: ["name", "description", "cover_image_url"],
+          as: 'Theme',
+          attributes: ['name', 'description', 'cover_image_url'],
+        },
+        {
+          model: Competition,
+          attributes: ['id', 'user1_id', 'user2_id'],
+          where: {
+            [Op.and]: [
+              {
+                [Op.or]: [{ user1_id: req.user.id }, { user2_id: req.user.id }],
+              },
+              {
+                status: {
+                  [Op.ne]: 'Complete',
+                },
+              },
+            ],
+          },
+          required: false, // important: still get contests even if no competition matches
         },
       ],
       order: [
-        [literal(`CASE
+        [
+          literal(`CASE
           WHEN "Contest"."status" = 'Live' THEN 0
           WHEN "Contest"."status" = 'Upcoming' THEN 1
-          ELSE 2 END`), 'ASC'],
+          ELSE 2 END`),
+          'ASC',
+        ],
       ],
     });
 
-    console.log("✅ Ordered Live & Upcoming Contests:", JSON.stringify(contests, null, 2));
     res.json(contests);
   } catch (error) {
-    console.error("❌ Error fetching live & upcoming contests:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error('❌ Error fetching live & upcoming contests:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
@@ -95,21 +114,28 @@ const getLiveAndUpcomingContests = async (req, res) => {
 const getLiveContests = async (req, res) => {
   try {
     const liveContests = await Contest.findAll({
-      where: { status: "Live" },
+      where: {
+        status: 'Live',
+        voting_deadline: {
+          [Op.gt]: new Date(),
+        },
+        voting_live_date: {
+          [Op.lt]: new Date(),
+        },
+      },
       include: [
         {
           model: Theme,
-          as: "Theme", // ✅ Ensure this matches the alias in Contest.associate()
-          attributes: ["name", "description", "cover_image_url"], // ✅ Fetch only required fields
+          as: 'Theme', // ✅ Ensure this matches the alias in Contest.associate()
+          attributes: ['name', 'description', 'cover_image_url'], // ✅ Fetch only required fields
         },
       ],
     });
 
-    console.log("✅ Live Contests:", JSON.stringify(liveContests, null, 2));
     res.json(liveContests);
   } catch (error) {
-    console.error("❌ Error fetching live contests:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error('❌ Error fetching live contests:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
@@ -129,8 +155,6 @@ const createContest = async (req, res) => {
       total_entries,
       contest_live_date,
     } = req.body;
-    
-    console.log('Creating contest with data:', req.body); // Log the incoming data
 
     const newContest = await Contest.create({
       creator_id,
@@ -148,8 +172,8 @@ const createContest = async (req, res) => {
 
     res.status(201).json(newContest);
   } catch (error) {
-    console.error("❌ Error creating contest:", error.message, error.stack);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error('❌ Error creating contest:', error.message, error.stack);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
@@ -161,7 +185,7 @@ const updateContest = async (req, res) => {
     const contest = await Contest.findByPk(id);
 
     if (!contest) {
-      return res.status(404).json({ error: "Contest not found" });
+      return res.status(404).json({ error: 'Contest not found' });
     }
 
     await contest.update(updatedFields);
@@ -169,19 +193,19 @@ const updateContest = async (req, res) => {
     // Fetch updated contest with Theme info
     const updatedContest = await Contest.findByPk(id, {
       include: [
-        { model: User, attributes: ["username", "email"] },
+        { model: User, attributes: ['username', 'email'] },
         {
           model: Theme,
-          as: "Theme",
-          attributes: ["id", "name", "cover_image_url"],
+          as: 'Theme',
+          attributes: ['id', 'name', 'cover_image_url'],
         },
       ],
     });
 
     res.status(200).json(updatedContest);
   } catch (error) {
-    console.error("❌ Error updating contest:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error('❌ Error updating contest:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
@@ -193,18 +217,18 @@ const deleteContest = async (req, res) => {
     const contest = await Contest.findByPk(id);
 
     if (!contest) {
-      return res.status(404).json({ error: "Contest not found" });
+      return res.status(404).json({ error: 'Contest not found' });
     }
 
     await contest.destroy();
-    res.status(200).json({ message: `Contest with ID ${id} deleted successfully` });
+    res
+      .status(200)
+      .json({ message: `Contest with ID ${id} deleted successfully` });
   } catch (error) {
-    console.error("❌ Error deleting contest:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error('❌ Error deleting contest:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
-
 
 // ✅ Export functions correctly
 module.exports = {
@@ -214,5 +238,5 @@ module.exports = {
   getLiveAndUpcomingContests,
   createContest,
   updateContest,
-  deleteContest
+  deleteContest,
 };

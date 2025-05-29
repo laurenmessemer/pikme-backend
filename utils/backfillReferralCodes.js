@@ -1,8 +1,8 @@
 // backend/scripts/backfillReferralCodes.js
-const { User } = require("../models");
-const { sequelize } = require("../models");
+const { User } = require('../models');
+const { sequelize } = require('../models');
 
-const generateReferralCode = (id) => `PIK${id.toString().padStart(6, "0")}`;
+const generateReferralCode = (id) => `PIK${id.toString().padStart(6, '0')}`;
 
 const backfillReferralCodes = async () => {
   await sequelize.authenticate();
@@ -12,11 +12,9 @@ const backfillReferralCodes = async () => {
     if (!user.referral_code) {
       user.referral_code = generateReferralCode(user.id);
       await user.save();
-      console.log(`✅ Set referral code for ${user.email}`);
     }
   }
 
-  console.log("🎉 All referral codes set.");
   process.exit();
 };
 

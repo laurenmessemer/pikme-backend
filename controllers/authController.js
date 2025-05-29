@@ -1,38 +1,41 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const { User, Wallet } = require("../models");
-const crypto = require("crypto");
-const sendConfirmationEmail = require("../utils/sendConfirmationEmail"); // ✅ Add this line
-
-
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { User, Wallet } = require('../models');
+const crypto = require('crypto');
+const sendConfirmationEmail = require('../utils/sendConfirmationEmail'); // ✅ Add this line
 
 // ✅ Generate JWT Token
 const generateToken = (user) => {
-  return jwt.sign(
-    { id: user.id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "2h" }
-  );
+  return jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: '2d',
+  });
 };
-
 
 exports.registerUser = async (req, res) => {
   try {
-    const { username, email, password, referralCode } = req.body;
+    const {
+      username,
+      email,
+      password,
+      referralCode,
+      inviteCode = null,
+    } = req.body;
 
     // ✅ Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ message: 'User already exists' });
     }
 
     let referredByUser = null;
 
     // ✅ Validate referral code if provided
     if (referralCode) {
-      referredByUser = await User.findOne({ where: { referral_code: referralCode } });
+      referredByUser = await User.findOne({
+        where: { referral_code: referralCode },
+      });
       if (!referredByUser) {
-        return res.status(400).json({ message: "Invalid referral code." });
+        return res.status(400).json({ message: 'Invalid referral code.' });
       }
     }
 
@@ -44,16 +47,16 @@ exports.registerUser = async (req, res) => {
       username,
       email,
       password_hash: hashedPassword,
-      role: "participant",
+      role: 'participant',
       referred_by_id: referredByUser ? referredByUser.id : null,
     });
 
     // ✅ Generate referral code
-    newUser.referral_code = `PIK${String(newUser.id).padStart(6, "0")}`;
+    newUser.referral_code = `PIK${String(newUser.id).padStart(6, '0')}`;
     newUser.referral_bonus_awarded = referredByUser ? false : null;
 
     // ✅ Generate email verification token
-    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationToken = crypto.randomBytes(32).toString('hex');
     newUser.verification_token = verificationToken;
 
     await newUser.save();
@@ -61,8 +64,8 @@ exports.registerUser = async (req, res) => {
     // ✅ Build transaction history for new user's wallet
     const transactionHistory = [
       {
-        type: "Joining Bonus",
-        description: "Joining Bonus: +10 tokens",
+        type: 'Joining Bonus',
+        description: 'Joining Bonus: +10 tokens',
         amount: 10,
         timestamp: new Date(),
       },
@@ -73,8 +76,8 @@ exports.registerUser = async (req, res) => {
     // ✅ If referred, apply referral bonus
     if (referredByUser) {
       transactionHistory.push({
-        type: "Referral Bonus",
-        description: "Used referral code: +10 tokens",
+        type: 'Referral Bonus',
+        description: 'Used referral code: +10 tokens',
         amount: 10,
         timestamp: new Date(),
       });
@@ -82,13 +85,15 @@ exports.registerUser = async (req, res) => {
       startingBalance += 10;
 
       // ✅ Update referring user's wallet
-      const refWallet = await Wallet.findOne({ where: { user_id: referredByUser.id } });
+      const refWallet = await Wallet.findOne({
+        where: { user_id: referredByUser.id },
+      });
       if (refWallet) {
         refWallet.token_balance += 10;
         refWallet.transaction_history = [
           ...(refWallet.transaction_history || []),
           {
-            type: "Referral Reward",
+            type: 'Referral Reward',
             description: `Referral reward for inviting ${username}: +10 tokens`,
             amount: 10,
             timestamp: new Date(),
@@ -109,15 +114,21 @@ exports.registerUser = async (req, res) => {
     });
 
     try {
-      await sendConfirmationEmail(newUser.email, newUser.username, verificationToken);
+      await sendConfirmationEmail(
+        newUser.email,
+        newUser.username,
+        verificationToken,
+        inviteCode
+      );
     } catch (emailError) {
-      console.error("❌ Email send failed:", emailError.message);
+      console.error('❌ Email send failed:', emailError.message);
       // optionally continue without blocking registration
     }
 
     // ✅ Return response
     res.status(201).json({
-      message: "User registered successfully. Please check your email to verify your account.",
+      message:
+        'User registered successfully. Please check your email to verify your account.',
       user: {
         id: newUser.id,
         username: newUser.username,
@@ -128,8 +139,8 @@ exports.registerUser = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("❌ Registration Error:", err.message);
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error('❌ Registration Error:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
@@ -141,26 +152,30 @@ exports.loginUser = async (req, res) => {
     const user = await User.findOne({
       where: { email },
       attributes: [
-        "id",
-        "username",
-        "email",
-        "role",
-        "password_hash",
-        "is_verified",
-        "suspended"
+        'id',
+        'username',
+        'email',
+        'role',
+        'password_hash',
+        'is_verified',
+        'suspended',
       ],
     });
 
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     if (!user.is_verified) {
-      return res.status(403).json({ message: "Please verify your email before logging in." });
+      return res
+        .status(403)
+        .json({ message: 'Please verify your email before logging in.' });
     }
 
     if (user.suspended) {
-      return res.status(403).json({ message: "Your account has been suspended." });
+      return res
+        .status(403)
+        .json({ message: 'Your account has been suspended.' });
     }
 
     const token = generateToken(user);
@@ -175,8 +190,8 @@ exports.loginUser = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("❌ Login Error:", err.message);
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error('❌ Login Error:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
@@ -184,34 +199,47 @@ exports.loginUser = async (req, res) => {
 exports.getUserProfile = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: { exclude: ["password_hash"] },
+      attributes: { exclude: ['password_hash'] },
     });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: 'User not found' });
     }
 
     res.json(user);
   } catch (err) {
-    console.error("❌ Fetch User Error:", err.message);
-    res.status(500).json({ message: "Server error" });
+    console.error('❌ Fetch User Error:', err.message);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
 exports.verifyEmail = async (req, res) => {
-  const { token } = req.query;
+  const { token, inviteCode = null } = req.query;
 
   const user = await User.findOne({ where: { verification_token: token } });
 
   if (!user) {
-    return res.status(400).json({ message: "Invalid or expired token." });
+    return res.status(400).json({ message: 'Invalid or expired token.' });
   }
 
   user.is_verified = true;
   user.verification_token = null;
+
+  const newToken = generateToken(user);
+
   await user.save();
 
-  res.json({ message: "Email verified successfully!" });
+  res.status(200).json({
+    // message: 'Email verified successfully!',
+    token: newToken,
+    inviteCode: inviteCode ? inviteCode : null,
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    },
+  });
 };
 
 exports.resendVerificationEmail = async (req, res) => {
@@ -221,22 +249,24 @@ exports.resendVerificationEmail = async (req, res) => {
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found." });
+      return res.status(404).json({ message: 'User not found.' });
     }
 
     if (user.is_verified) {
-      return res.status(400).json({ message: "Email is already verified." });
+      return res.status(400).json({ message: 'Email is already verified.' });
     }
 
-    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationToken = crypto.randomBytes(32).toString('hex');
     user.verification_token = verificationToken;
     await user.save();
 
     await sendConfirmationEmail(user.email, user.username, verificationToken);
 
-    res.json({ message: "Verification email resent successfully." });
+    res.json({ message: 'Verification email resent successfully.' });
   } catch (err) {
-    console.error("❌ Resend Email Error:", err.message);
-    res.status(500).json({ message: "Failed to resend email.", error: err.message });
+    console.error('❌ Resend Email Error:', err.message);
+    res
+      .status(500)
+      .json({ message: 'Failed to resend email.', error: err.message });
   }
 };

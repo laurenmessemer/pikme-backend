@@ -1,9 +1,10 @@
 // routes/winnersRoutes.js
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const winnersController = require("../controllers/winnersController");
+const winnersController = require('../controllers/winnersController');
+const isUserMiddleware = require('../middleware/isUserMiddleware');
 
-router.post("/determine", winnersController.determineWinners);
-router.get("/", winnersController.getWinners);
+router.post('/determine', isUserMiddleware, winnersController.determineWinners);
+router.get('/', isUserMiddleware, winnersController.getWinnersV2);
 
 module.exports = router;

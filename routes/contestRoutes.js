@@ -1,4 +1,4 @@
-const express = require("express");
+const express = require('express');
 const {
   getAllContests,
   createContest,
@@ -6,30 +6,32 @@ const {
   getContestById,
   getLiveAndUpcomingContests,
   updateContest,
-  deleteContest
-} = require("../controllers/contestController"); // ✅ Ensure correct import
+  deleteContest,
+} = require('../controllers/contestController'); // ✅ Ensure correct import
+const isAdminOrUserMiddleware = require('../middleware/isAdminOrUserMiddleware');
+const isUserMiddleware = require('../middleware/isUserMiddleware');
 
 const router = express.Router();
 
 // ✅ Fetch all contests
-router.get("/", getAllContests);
+router.get('/', isAdminOrUserMiddleware, getAllContests);
 
 // ✅ Fetch only live contests
-router.get("/live", getLiveContests);
+router.get('/live', isUserMiddleware, getLiveContests);
 
 // ✅ Fetch only live and upcoming contests
-router.get("/live-upcoming", getLiveAndUpcomingContests);
+router.get('/live-upcoming', isUserMiddleware, getLiveAndUpcomingContests);
 
 // ✅ Fetch single contest
-router.get("/:id", getContestById);
+router.get('/:id', isUserMiddleware, getContestById);
 
 // ✅ Create a new contest
-router.post("/", createContest);
+router.post('/', isAdminOrUserMiddleware, createContest);
 
 // ✅ Update contest by ID
-router.put("/:id", updateContest);
+router.put('/:id', isAdminOrUserMiddleware, updateContest);
 
 // ✅ Delete contest by ID
-router.delete("/:id", deleteContest);
+router.delete('/:id', isAdminOrUserMiddleware, deleteContest);
 
 module.exports = router;
