@@ -238,91 +238,93 @@ const determineWinnersFunction = async () => {
               "contest_id"
         `;
 
-    const queryString = competition_winners + top_3_winners + finalSelect;
-    const result = await sequelize.query(queryString, {
-      type: sequelize.QueryTypes.SELECT,
-    });
-
-    for (let i = 0; i < result.length; i++) {
-      const contestData = result[i];
-      const contest = await Contest.findByPk(contestData.contest_id, {
-        include: [
-          {
-            model: Theme,
-            as: 'Theme',
-            attributes: ['id'],
-          },
-        ],
+    if (Array.isArray(contestIds) && contestIds.length > 0) {
+      const queryString = competition_winners + top_3_winners + finalSelect;
+      const result = await sequelize.query(queryString, {
+        type: sequelize.QueryTypes.SELECT,
       });
-      const winnersAmount = contest.winnings;
-      const winnerRanks = ['first', 'second', 'third'];
-      const rankSuffixes = ['st', 'nd', 'rd'];
 
-      for (let j = 0; j < contestData.competition_winners.length; j++) {
-        const competitionWinner = contestData.competition_winners[j];
-
-        const competition = await Competition.findOne({
-          where: {
-            id: competitionWinner.competition_id,
-          },
+      for (let i = 0; i < result.length; i++) {
+        const contestData = result[i];
+        const contest = await Contest.findByPk(contestData.contest_id, {
           include: [
-            { model: User, as: 'User1', attributes: ['id', 'username'] },
-            { model: User, as: 'User2', attributes: ['id', 'username'] },
+            {
+              model: Theme,
+              as: 'Theme',
+              attributes: ['id'],
+            },
           ],
         });
+        const winnersAmount = contest.winnings;
+        const winnerRanks = ['first', 'second', 'third'];
+        const rankSuffixes = ['st', 'nd', 'rd'];
 
-        if (!competition) {
-          console.warn(
-            '⚠️ Competition not found for ID:',
-            competitionWinner.competition_id
-          );
-          continue;
-        }
+        for (let j = 0; j < contestData.competition_winners.length; j++) {
+          const competitionWinner = contestData.competition_winners[j];
 
-        let winnerUsername = null;
-        let winnerEarnings = 0;
-
-        let winnerId = null;
-        if (competitionWinner.voted_for === 'user1') {
-          winnerUsername = competition.User1.username;
-          winnerEarnings = winnersAmount[winnerRanks[j]];
-
-          winnerId = competition.User1.id;
-        } else if (competitionWinner.voted_for === 'user2') {
-          winnerUsername = competition.User2.username;
-          winnerEarnings = winnersAmount[winnerRanks[j]];
-          winnerId = competition.User2.id;
-        }
-
-        if (winnerUsername) {
-          const winnerWallet = await Wallet.findOne({
-            where: { user_id: winnerId },
+          const competition = await Competition.findOne({
+            where: {
+              id: competitionWinner.competition_id,
+            },
+            include: [
+              { model: User, as: 'User1', attributes: ['id', 'username'] },
+              { model: User, as: 'User2', attributes: ['id', 'username'] },
+            ],
           });
 
-          if (winnerWallet) {
-            winnerWallet.token_balance += Number(winnerEarnings);
-            winnerWallet.transaction_history = [
-              ...(winnerWallet.transaction_history || []),
-              {
-                type: 'Contest Win Reward',
-                description: `Reward for winning a Contest with ${
-                  Number(j) + 1
-                }${rankSuffixes[j]} place: +${winnerEarnings} tokens`,
-                amount: Number(winnerEarnings),
-                timestamp: new Date(),
-              },
-            ];
-
-            await winnerWallet.save();
+          if (!competition) {
+            console.warn(
+              '⚠️ Competition not found for ID:',
+              competitionWinner.competition_id
+            );
+            continue;
           }
 
-          const createWinner = await Winners.create({
-            contest_id: contestData.contest_id,
-            competition_id: competitionWinner.competition_id,
-            user_id: winnerId,
-            winning_amount: winnerEarnings,
-            position: Number(j) + 1,
-          });
+          let winnerUsername = null;
+          let winnerEarnings = 0;
+
+          let winnerId = null;
+          if (competitionWinner.voted_for === 'user1') {
+            winnerUsername = competition.User1.username;
+            winnerEarnings = winnersAmount[winnerRanks[j]];
+
+            winnerId = competition.User1.id;
+          } else if (competitionWinner.voted_for === 'user2') {
+            winnerUsername = competition.User2.username;
+            winnerEarnings = winnersAmount[winnerRanks[j]];
+            winnerId = competition.User2.id;
+          }
+
+          if (winnerUsername) {
+            const winnerWallet = await Wallet.findOne({
+              where: { user_id: winnerId },
+            });
+
+            if (winnerWallet) {
+              winnerWallet.token_balance += Number(winnerEarnings);
+              winnerWallet.transaction_history = [
+                ...(winnerWallet.transaction_history || []),
+                {
+                  type: 'Contest Win Reward',
+                  description: `Reward for winning a Contest with ${
+                    Number(j) + 1
+                  }${rankSuffixes[j]} place: +${winnerEarnings} tokens`,
+                  amount: Number(winnerEarnings),
+                  timestamp: new Date(),
+                },
+              ];
+
+              await winnerWallet.save();
+            }
+
+            const createWinner = await Winners.create({
+              contest_id: contestData.contest_id,
+              competition_id: competitionWinner.competition_id,
+              user_id: winnerId,
+              winning_amount: winnerEarnings,
+              position: Number(j) + 1,
+            });
+          }
         }
       }
     }

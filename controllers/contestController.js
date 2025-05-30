@@ -74,23 +74,23 @@ const getLiveAndUpcomingContests = async (req, res) => {
           as: 'Theme',
           attributes: ['name', 'description', 'cover_image_url'],
         },
-        {
-          model: Competition,
-          attributes: ['id', 'user1_id', 'user2_id'],
-          where: {
-            [Op.and]: [
-              {
-                [Op.or]: [{ user1_id: req.user.id }, { user2_id: req.user.id }],
-              },
-              {
-                status: {
-                  [Op.ne]: 'Complete',
-                },
-              },
-            ],
-          },
-          required: false, // important: still get contests even if no competition matches
-        },
+        // {
+        //   model: Competition,
+        //   attributes: ['id', 'user1_id', 'user2_id'],
+        //   where: {
+        //     [Op.and]: [
+        //       {
+        //         [Op.or]: [{ user1_id: req.user.id }, { user2_id: req.user.id }],
+        //       },
+        //       {
+        //         status: {
+        //           [Op.ne]: 'Complete',
+        //         },
+        //       },
+        //     ],
+        //   },
+        //   required: false, // important: still get contests even if no competition matches
+        // },
       ],
       order: [
         [

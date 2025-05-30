@@ -17,13 +17,13 @@ const router = express.Router();
 router.get('/', isAdminOrUserMiddleware, getAllContests);
 
 // ✅ Fetch only live contests
-router.get('/live', isUserMiddleware, getLiveContests);
+router.get('/live', getLiveContests);
 
 // ✅ Fetch only live and upcoming contests
-router.get('/live-upcoming', isUserMiddleware, getLiveAndUpcomingContests);
+router.get('/live-upcoming', getLiveAndUpcomingContests);
 
 // ✅ Fetch single contest
-router.get('/:id', isUserMiddleware, getContestById);
+router.get('/:id', getContestById);
 
 // ✅ Create a new contest
 router.post('/', isAdminOrUserMiddleware, createContest);

@@ -10,11 +10,13 @@ exports.getVotingEntries = async (req, res) => {
         user1_image: { [Op.not]: null },
         user2_image: { [Op.not]: null },
         // Subquery to exclude competitions the user has voted in
-        [Op.and]: Sequelize.literal(`"Competition"."id" NOT IN (
-          SELECT "competition_id"
-          FROM "Votes"
-          WHERE "voter_id" = ${req.user.id}
-        )`),
+        ...(req?.user?.id && {
+          [Op.and]: Sequelize.literal(`"Competition"."id" NOT IN (
+            SELECT "competition_id"
+            FROM "Votes"
+            WHERE "voter_id" = ${req.user.id}
+          )`),
+        }),
       },
       include: [
         {

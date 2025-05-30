@@ -3,7 +3,7 @@ const router = express.Router();
 const activityController = require('../controllers/activityController');
 const isUserMiddleware = require('../middleware/isUserMiddleware');
 
-router.get('/votes', isUserMiddleware, activityController.getTopVoters);
-router.get('/referrals', isUserMiddleware, activityController.getTopReferrers);
+router.get('/votes', activityController.getTopVoters);
+router.get('/referrals', activityController.getTopReferrers);
 
 module.exports = router;
