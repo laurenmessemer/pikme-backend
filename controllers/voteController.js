@@ -4,17 +4,18 @@ const { Op, Sequelize } = require('sequelize');
 // ✅ Fetch active competitions where both images exist
 exports.getVotingEntries = async (req, res) => {
   try {
+    const { userId } = req.query;
     const competitions = await Competition.findAll({
       where: {
         status: 'Active',
         user1_image: { [Op.not]: null },
         user2_image: { [Op.not]: null },
         // Subquery to exclude competitions the user has voted in
-        ...(req?.user?.id && {
+        ...(userId && {
           [Op.and]: Sequelize.literal(`"Competition"."id" NOT IN (
             SELECT "competition_id"
             FROM "Votes"
-            WHERE "voter_id" = ${req.user.id}
+            WHERE "voter_id" = ${userId}
           )`),
         }),
       },
