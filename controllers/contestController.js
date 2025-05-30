@@ -64,9 +64,6 @@ const getLiveAndUpcomingContests = async (req, res) => {
         submission_deadline: {
           [Op.gt]: new Date(),
         },
-        contest_live_date: {
-          [Op.lt]: new Date(),
-        },
       },
       include: [
         {
