@@ -4,7 +4,7 @@ const isUserMiddleware = require('../middleware/isUserMiddleware');
 
 const router = express.Router();
 
-router.get('/get-entries', isUserMiddleware, getVotingEntries);
-router.post('/vote', isUserMiddleware, castVote); // ✅ Ensure this route exists
+router.get('/get-entries', getVotingEntries);
+router.post('/vote', castVote); // ✅ Ensure this route exists
 
 module.exports = router;

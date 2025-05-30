@@ -4,21 +4,13 @@ const leaderboardController = require('../controllers/leaderboardController'); /
 const isUserMiddleware = require('../middleware/isUserMiddleware');
 
 // ✅ Route to get live contests
-router.get(
-  '/live-contests',
-  isUserMiddleware,
-  leaderboardController.getLiveContests
-);
+router.get('/live-contests', leaderboardController.getLiveContests);
 
 // ✅ Route to get all past winners
 router.get('/winners', isUserMiddleware, leaderboardController.getWinners);
 
 // ✅ Route to get user submissions
-router.get(
-  '/mysubmissions',
-  isUserMiddleware,
-  leaderboardController.getUserSubmissions
-);
+router.get('/mysubmissions', leaderboardController.getUserSubmissions);
 
 // ✅ Get opponent info for a specific competition
 router.get(
