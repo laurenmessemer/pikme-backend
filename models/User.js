@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define(
-    "User",
+    'User',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -24,14 +24,14 @@ module.exports = (sequelize, DataTypes) => {
       role: {
         type: DataTypes.STRING,
         allowNull: false,
-        defaultValue: "participant",
+        defaultValue: 'participant',
       },
       referred_by_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: {
-          model: "Users",
-          key: "id",
+          model: 'Users',
+          key: 'id',
         },
       },
       referral_code: {
@@ -54,25 +54,44 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
+      age_verified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
     },
     {
       timestamps: true,
-      tableName: "Users",
+      tableName: 'Users',
     }
   );
 
   User.associate = (models) => {
-    User.hasOne(models.Wallet, { foreignKey: "user_id", onDelete: "CASCADE" });
+    User.hasOne(models.Wallet, { foreignKey: 'user_id', onDelete: 'CASCADE' });
 
-    User.hasMany(models.Entry, { foreignKey: "user_id", onDelete: "CASCADE" });
-    User.hasMany(models.Contest, { foreignKey: "creator_id", onDelete: "CASCADE" });
-    User.hasMany(models.Vote, { foreignKey: "voter_id", onDelete: "CASCADE" });
+    User.hasMany(models.Entry, { foreignKey: 'user_id', onDelete: 'CASCADE' });
+    User.hasMany(models.Contest, {
+      foreignKey: 'creator_id',
+      onDelete: 'CASCADE',
+    });
+    User.hasMany(models.Vote, { foreignKey: 'voter_id', onDelete: 'CASCADE' });
 
-    User.hasMany(models.Competition, { foreignKey: "user1_id", onDelete: "CASCADE" });
-    User.hasMany(models.Competition, { foreignKey: "user2_id", onDelete: "CASCADE" });
+    User.hasMany(models.Competition, {
+      foreignKey: 'user1_id',
+      onDelete: 'CASCADE',
+    });
+    User.hasMany(models.Competition, {
+      foreignKey: 'user2_id',
+      onDelete: 'CASCADE',
+    });
 
-    User.hasMany(models.Report, { foreignKey: "reporter_id", as: "ReportsMade" });
-    User.hasMany(models.Report, { foreignKey: "reported_user_id", as: "ReportsReceived" });
+    User.hasMany(models.Report, {
+      foreignKey: 'reporter_id',
+      as: 'ReportsMade',
+    });
+    User.hasMany(models.Report, {
+      foreignKey: 'reported_user_id',
+      as: 'ReportsReceived',
+    });
   };
 
   return User;

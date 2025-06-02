@@ -8,6 +8,7 @@ const {
   Theme,
   sequelize,
 } = require('../models');
+const addAlerts = require('./addAlerts');
 
 const determineWinnersFunction = async () => {
   try {
@@ -96,6 +97,12 @@ const determineWinnersFunction = async () => {
                 },
               ];
               await user1Wallet.save();
+
+              await addAlerts({
+                user_id: user1,
+                title: `It's a Tie!`,
+                message: `The match ended in a tie. No worries — your entry fee of ${competition.Contest.entry_fee} tokens has been returned to your wallet`,
+              });
             }
             const user2Wallet = await Wallet.findOne({
               where: { user_id: user2 },
@@ -115,6 +122,12 @@ const determineWinnersFunction = async () => {
                 },
               ];
               await user2Wallet.save();
+
+              await addAlerts({
+                user_id: user2,
+                title: `It's a Tie!`,
+                message: `The match ended in a tie. No worries — your entry fee of ${competition.Contest.entry_fee} tokens has been returned to your wallet`,
+              });
             }
           } else {
             // ✅ Update referring user's wallet
@@ -134,6 +147,12 @@ const determineWinnersFunction = async () => {
                 },
               ];
               await winnerWallet.save();
+
+              await addAlerts({
+                user_id: winnerId,
+                title: `You Won!`,
+                message: `Amazing job! You've won the contest and earned 2x your entry fee — ${winnerEarnings} tokens have been added to your wallet.`,
+              });
             }
           }
 

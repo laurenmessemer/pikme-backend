@@ -3,14 +3,15 @@ const {
   Contest,
   Wallet,
   User,
-  Op,
   PendingCompetition,
 } = require('../models');
+const { Op } = require('sequelize');
 const crypto = require('crypto');
 const AWS = require('aws-sdk');
 const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 const sendInviteEmail = require('../utils/sendInviteEmail');
+const addAlerts = require('../utils/addAlerts');
 
 // ✅ Load environment variables from .env file
 dotenv.config();
@@ -155,6 +156,10 @@ const confirmPayment = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields.' });
     }
 
+    const findUser = await User.findOne({
+      where: { id: user_id },
+    });
+
     const pendingEntry = await PendingCompetition.findOne({
       where: { user1_id: user_id, contest_id, status: 'waiting' },
       order: [['id', 'DESC']],
@@ -179,6 +184,15 @@ const confirmPayment = async (req, res) => {
 
     // ✅ Deduct tokens and update wallet
     wallet.token_balance -= entry_fee;
+    wallet.transaction_history = [
+      ...(wallet.transaction_history || []),
+      {
+        type: 'Contest Entry', //
+        description: `An entry fee was deducted: -${entry_fee} tokens`,
+        amount: -entry_fee,
+        timestamp: new Date(),
+      },
+    ];
     await wallet.save();
 
     // ✅ Mark entry as accepted and update match type
@@ -196,6 +210,9 @@ const confirmPayment = async (req, res) => {
           contest_id,
           match_type: 'pick_random',
           user2_id: null,
+          user1_id: {
+            [Op.ne]: user_id,
+          },
           status: 'Waiting',
         },
         order: [['createdAt', 'ASC']],
@@ -224,10 +241,6 @@ const confirmPayment = async (req, res) => {
         competition.invite_link = inviteCode;
 
         if (email) {
-          const findUser = await User.findOne({
-            where: { id: user_id },
-          });
-
           const findOpponent = await User.findOne({
             where: { email: email },
           });
@@ -264,6 +277,12 @@ const confirmPayment = async (req, res) => {
 
     // ✅ Remove pending entry since user has entered a competition
     await PendingCompetition.destroy({ where: { id: pendingEntry.id } });
+
+    await addAlerts({
+      user_id: findUser.id,
+      title: ` You're all set!`,
+      message: `Your entry is confirmed and ${entry_fee} tokens have been deducted from your wallet. Good luck — let the fun begin!`,
+    });
 
     res.status(200).json({
       message: 'Payment confirmed, competition entered!',

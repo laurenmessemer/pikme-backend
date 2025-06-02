@@ -1,13 +1,13 @@
-"use strict";
+'use strict';
 
-const fs = require("fs");
-const path = require("path");
-const Sequelize = require("sequelize");
+const fs = require('fs');
+const path = require('path');
+const Sequelize = require('sequelize');
 // const sequelize = require('../config/db');
-const process = require("process");
+const process = require('process');
 const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || "development";
-const config = require(path.join(__dirname, "/../config/config.js"))[env];
+const env = process.env.NODE_ENV || 'development';
+const config = require(path.join(__dirname, '/../config/config.js'))[env];
 
 const db = {};
 
@@ -25,15 +25,15 @@ try {
     );
   }
 } catch (error) {
-  console.error("❌ Error initializing Sequelize:", error.message);
+  console.error('❌ Error initializing Sequelize:', error.message);
   process.exit(1);
 }
 
 sequelize
   .authenticate()
-  .then(() => console.log("✅ Database connection successful"))
+  .then(() => console.log('✅ Database connection successful'))
   .catch((error) => {
-    console.error("❌ Database connection error:", error.message);
+    console.error('❌ Database connection error:', error.message);
     process.exit(1);
   });
 
@@ -43,10 +43,10 @@ db.Sequelize = Sequelize;
 // ✅ Load models
 const modelFiles = fs.readdirSync(__dirname).filter((file) => {
   return (
-    file.indexOf(".") !== 0 &&
+    file.indexOf('.') !== 0 &&
     file !== basename &&
-    file.slice(-3) === ".js" &&
-    file.indexOf(".test.js") === -1
+    file.slice(-3) === '.js' &&
+    file.indexOf('.test.js') === -1
   );
 });
 
@@ -54,7 +54,7 @@ modelFiles.forEach((file) => {
   try {
     const modelImport = require(path.join(__dirname, file));
 
-    if (typeof modelImport !== "function") {
+    if (typeof modelImport !== 'function') {
       throw new Error(`Model file "${file}" does not export a function.`);
     }
 
@@ -83,6 +83,6 @@ Object.keys(db).forEach((modelName) => {
   }
 });
 
-console.log("📦 Sequelize setup complete.");
+console.log('📦 Sequelize setup complete.');
 
 module.exports = db;
