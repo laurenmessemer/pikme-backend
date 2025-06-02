@@ -4,6 +4,7 @@ const {
   updateUser,
   deleteUser,
   suspendUser,
+  verifyAge,
 } = require('../controllers/userController');
 const isAdminOrUserMiddleware = require('../middleware/isAdminOrUserMiddleware');
 
@@ -20,5 +21,8 @@ router.patch('/:id/suspend', isAdminOrUserMiddleware, suspendUser);
 
 // ✅ Delete user
 router.delete('/:id', isAdminOrUserMiddleware, deleteUser);
+
+// ✅ Fetch all users
+router.post('/verify-age', isAdminOrUserMiddleware, verifyAge);
 
 module.exports = router;

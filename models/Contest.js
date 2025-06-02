@@ -1,8 +1,8 @@
-const { Sequelize, DataTypes } = require("sequelize");
+const { Sequelize, DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
   const Contest = sequelize.define(
-    "Contest",
+    'Contest',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -12,21 +12,21 @@ module.exports = (sequelize) => {
       creator_id: {
         type: DataTypes.INTEGER,
         references: {
-          model: "Users",
-          key: "id",
+          model: 'Users',
+          key: 'id',
         },
-        onDelete: "CASCADE",
+        onDelete: 'CASCADE',
       },
       theme_id: {
         type: DataTypes.INTEGER,
         references: {
-          model: "Themes",
-          key: "id",
+          model: 'Themes',
+          key: 'id',
         },
-        onDelete: "CASCADE",
+        onDelete: 'CASCADE',
       },
       status: {
-        type: DataTypes.ENUM("Upcoming", "Live", "Complete"),
+        type: DataTypes.ENUM('Upcoming', 'Live', 'Complete'),
         allowNull: false,
       },
       entry_fee: {
@@ -50,7 +50,7 @@ module.exports = (sequelize) => {
       contest_live_date: {
         type: DataTypes.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
       submission_deadline: {
         type: DataTypes.DATE,
@@ -64,21 +64,34 @@ module.exports = (sequelize) => {
         type: DataTypes.DATE,
         allowNull: false,
       },
+      notify_users: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
     },
     {
       timestamps: true,
-      tableName: "Contests",
+      tableName: 'Contests',
     }
   );
 
   Contest.associate = (models) => {
-    Contest.belongsTo(models.User, { foreignKey: "creator_id", onDelete: "CASCADE" });
-    Contest.belongsTo(models.Theme, {
-      foreignKey: "theme_id",
-      as: "Theme", // ✅ Ensure alias matches the backend query
+    Contest.belongsTo(models.User, {
+      foreignKey: 'creator_id',
+      onDelete: 'CASCADE',
     });
-    Contest.hasMany(models.Entry, { foreignKey: "contest_id", onDelete: "CASCADE" });
-    Contest.hasMany(models.Competition, { foreignKey: "contest_id", onDelete: "CASCADE" });
+    Contest.belongsTo(models.Theme, {
+      foreignKey: 'theme_id',
+      as: 'Theme', // ✅ Ensure alias matches the backend query
+    });
+    Contest.hasMany(models.Entry, {
+      foreignKey: 'contest_id',
+      onDelete: 'CASCADE',
+    });
+    Contest.hasMany(models.Competition, {
+      foreignKey: 'contest_id',
+      onDelete: 'CASCADE',
+    });
   };
 
   return Contest;

@@ -138,10 +138,33 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const verifyAge = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    user.age_verified = true;
+
+    await user.save();
+
+    return res
+      .status(200)
+      .json({ message: 'User updated successfully.', user });
+  } catch (error) {
+    console.error('❌ Error updating user:', error);
+    res
+      .status(500)
+      .json({ message: 'Failed to update user.', error: error.message });
+  }
+};
 // ✅ Export functions
 module.exports = {
   getUsers,
   updateUser,
   deleteUser,
   suspendUser,
+  verifyAge,
 };

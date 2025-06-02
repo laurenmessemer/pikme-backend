@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { User, Wallet } = require('../models');
 const crypto = require('crypto');
 const sendConfirmationEmail = require('../utils/sendConfirmationEmail'); // ✅ Add this line
+const addAlerts = require('../utils/addAlerts');
 
 // ✅ Generate JWT Token
 const generateToken = (user) => {
@@ -229,6 +230,18 @@ exports.verifyEmail = async (req, res) => {
 
   await user.save();
 
+  // add alerts
+  await addAlerts({
+    user_id: user.id,
+    title: 'Welcome to PikMe!',
+    message: `We're excited to have you on board. Start exploring and get the most out of your experience.`,
+  });
+
+  await addAlerts({
+    user_id: user.id,
+    title: `You've Got 10 Free Tokens!`,
+    message: `Thanks for signing up with PikMe! We've added 10 free tokens to your wallet to get you started.`,
+  });
   res.status(200).json({
     // message: 'Email verified successfully!',
     token: newToken,

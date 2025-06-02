@@ -1,5 +1,6 @@
 const { Contest, User, Theme, Competition } = require('../models'); // ✅ Ensure Theme is imported
 const { Op, literal } = require('sequelize');
+const notifyUserOnContestOpen = require('../utils/notifyUserOnContestOpen');
 
 // ✅ Fetch all contests
 const getAllContests = async (req, res) => {
@@ -156,7 +157,11 @@ const createContest = async (req, res) => {
     const newContest = await Contest.create({
       creator_id,
       theme_id,
-      status: status || 'Live', // Default to 'Live' if not provided
+      status: status
+        ? status
+        : new Date(contest_live_date) < new Date()
+        ? 'Live'
+        : 'Upcoming', // Default to 'Live' if not provided
       entry_fee,
       prize_pool,
       submission_deadline,
@@ -185,6 +190,15 @@ const updateContest = async (req, res) => {
       return res.status(404).json({ error: 'Contest not found' });
     }
 
+    if (
+      contest.status !== 'Live' &&
+      updatedFields.status === 'Live' &&
+      contest.notify_users === false
+    ) {
+      updatedFields['notify_users'] = true;
+
+      await notifyUserOnContestOpen();
+    }
     await contest.update(updatedFields);
 
     // Fetch updated contest with Theme info
