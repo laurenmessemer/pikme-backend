@@ -112,3 +112,12 @@ ALTER SEQUENCE public."weeklyTopReferrers_id_seq"
 
 ALTER TABLE IF EXISTS public."weeklyTopReferrers"
     RENAME TO "WeeklyTopReferrers";
+
+
+--Stage 3
+
+ALTER TABLE IF EXISTS public."Users"
+    ADD COLUMN date_of_birth timestamp with time zone;
+
+ALTER TABLE IF EXISTS public."Users"
+    ADD COLUMN status TEXT DEFAULT 'Normal'::TEXT;
