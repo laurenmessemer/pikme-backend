@@ -4,6 +4,7 @@ const { User, Wallet } = require('../models');
 const crypto = require('crypto');
 const sendConfirmationEmail = require('../utils/sendConfirmationEmail'); // ✅ Add this line
 const addAlerts = require('../utils/addAlerts');
+const moment = require('moment');
 
 // ✅ Generate JWT Token
 const generateToken = (user) => {
@@ -20,7 +21,28 @@ exports.registerUser = async (req, res) => {
       password,
       referralCode,
       inviteCode = null,
+      dateOfBirth = null,
     } = req.body;
+
+    function is18OrOlder(dateOfBirthStr) {
+      const dob = moment(dateOfBirthStr);
+      const today = moment();
+
+      // Get age in full years
+      const age = today.diff(dob, 'years');
+
+      return age >= 18 ? true : false;
+    }
+
+    if (!dateOfBirth) {
+      return res.status(400).json({ message: 'Date of Birth is required' });
+    }
+
+    const userAge = await is18OrOlder(dateOfBirth);
+
+    if (!userAge) {
+      return res.status(400).json({ message: 'User Age is less than 18' });
+    }
 
     // ✅ Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -50,6 +72,8 @@ exports.registerUser = async (req, res) => {
       password_hash: hashedPassword,
       role: 'participant',
       referred_by_id: referredByUser ? referredByUser.id : null,
+      date_of_birth: dateOfBirth,
+      age_verified: dateOfBirth ? true : false,
     });
 
     // ✅ Generate referral code

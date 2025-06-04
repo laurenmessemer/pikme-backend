@@ -58,6 +58,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
+      date_of_birth: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
     {
       timestamps: true,
