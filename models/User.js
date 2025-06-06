@@ -62,6 +62,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATE,
         allowNull: true,
       },
+      status: {
+        type: DataTypes.ENUM('Normal', 'Warn', 'Ban'),
+        allowNull: true,
+      },
     },
     {
       timestamps: true,

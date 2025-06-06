@@ -1,5 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
-    const Report = sequelize.define("Report", {
+  const Report = sequelize.define(
+    'Report',
+    {
       id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
@@ -29,17 +31,28 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(500),
         allowNull: true,
       },
-    }, {
+      status: {
+        type: DataTypes.ENUM('New', 'Violation', 'No Violation'),
+        allowNull: true,
+      },
+    },
+    {
       timestamps: true,
-      tableName: "Reports",
+      tableName: 'Reports',
+    }
+  );
+
+  Report.associate = (models) => {
+    Report.belongsTo(models.User, {
+      foreignKey: 'reporter_id',
+      as: 'Reporter',
     });
-  
-    Report.associate = (models) => {
-      Report.belongsTo(models.User, { foreignKey: "reporter_id", as: "Reporter" });
-      Report.belongsTo(models.User, { foreignKey: "reported_user_id", as: "ReportedUser" });
-      Report.belongsTo(models.Competition, { foreignKey: "competition_id" });
-    };
-  
-    return Report;
+    Report.belongsTo(models.User, {
+      foreignKey: 'reported_user_id',
+      as: 'ReportedUser',
+    });
+    Report.belongsTo(models.Competition, { foreignKey: 'competition_id' });
   };
-  
+
+  return Report;
+};
