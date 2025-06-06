@@ -1,6 +1,12 @@
-const { Vote, User, Competition, Contest } = require("../models");
-const { getDateFilters } = require("../utils/metricsUtils");
-const { Op, Sequelize } = require("sequelize");
+const {
+  Vote,
+  User,
+  Competition,
+  Contest,
+  WeeklyVoterStats,
+} = require('../models');
+const { getDateFilters } = require('../utils/metricsUtils');
+const { Op, Sequelize } = require('sequelize');
 
 exports.getVoteMetrics = async (req, res) => {
   const { userId } = req.params;
@@ -20,76 +26,82 @@ exports.getVoteMetrics = async (req, res) => {
 
     res.json(metrics);
   } catch (err) {
-    console.error("Error fetching vote metrics:", err);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error fetching vote metrics:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 exports.getAvgVotesPerUser = async (req, res) => {
-    const dateFilters = getDateFilters();
-    const metrics = {};
-  
-    try {
-      for (const [interval, filter] of Object.entries(dateFilters)) {
-        // Total votes in interval
-        const totalVotes = await Vote.count({ where: { ...filter } });
-  
-        // Unique users who cast votes in that interval
-        const uniqueVoters = await Vote.count({
-          where: { ...filter },
-          distinct: true,
-          col: "voter_id",
-        });
-  
-        metrics[interval] = {
-          totalVotes,
-          uniqueVoters,
-          avgVotesPerUser: uniqueVoters > 0 ? (totalVotes / uniqueVoters).toFixed(2) : "0.00",
-        };
-      }
-  
-      res.json(metrics);
-    } catch (err) {
-      console.error("❌ Error in getAvgVotesPerUser:", err);
-      res.status(500).json({ message: "Internal Server Error", error: err.message });
+  const dateFilters = getDateFilters();
+  const metrics = {};
+
+  try {
+    for (const [interval, filter] of Object.entries(dateFilters)) {
+      // Total votes in interval
+      const totalVotes = await Vote.count({ where: { ...filter } });
+
+      // Unique users who cast votes in that interval
+      const uniqueVoters = await Vote.count({
+        where: { ...filter },
+        distinct: true,
+        col: 'voter_id',
+      });
+
+      metrics[interval] = {
+        totalVotes,
+        uniqueVoters,
+        avgVotesPerUser:
+          uniqueVoters > 0 ? (totalVotes / uniqueVoters).toFixed(2) : '0.00',
+      };
     }
+
+    res.json(metrics);
+  } catch (err) {
+    console.error('❌ Error in getAvgVotesPerUser:', err);
+    res
+      .status(500)
+      .json({ message: 'Internal Server Error', error: err.message });
+  }
 };
 
 exports.getVotingUserPercentage = async (req, res) => {
-const dateFilters = getDateFilters();
-const result = {};
+  const dateFilters = getDateFilters();
+  const result = {};
 
-try {
+  try {
     // Total user count (can adjust to exclude suspended users if desired)
     const totalUsers = await User.count({
-    where: {
-        role: "participant", // or any roles you want to include
-        suspended: false
-    }
+      where: {
+        role: 'participant', // or any roles you want to include
+        suspended: false,
+      },
     });
 
     for (const [interval, filter] of Object.entries(dateFilters)) {
-    // Count distinct voters in that interval
-    const voters = await Vote.count({
+      // Count distinct voters in that interval
+      const voters = await Vote.count({
         where: { ...filter },
         distinct: true,
-        col: "voter_id"
-    });
+        col: 'voter_id',
+      });
 
-    const percentage = totalUsers > 0 ? ((voters / totalUsers) * 100).toFixed(2) : "0.00";
+      const percentage =
+        totalUsers > 0 ? ((voters / totalUsers) * 100).toFixed(2) : '0.00';
 
-    result[interval] = {
+      result[interval] = {
         uniqueVoters: voters,
         totalUsers,
-        votingUserPercentage: percentage
-    };
+        votingUserPercentage: percentage,
+      };
     }
 
     res.json(result);
-} catch (err) {
-    console.error("❌ Error in getVotingUserPercentage:", err);
-    res.status(500).json({ message: "Internal Server Error", error: err.message });
-}
+  } catch (err) {
+    console.error('❌ Error in getVotingUserPercentage:', err);
+    res
+      .status(500)
+      .json({ message: 'Internal Server Error', error: err.message });
+  }
 };
 
 exports.getCurrentCompetingUsers = async (req, res) => {
@@ -97,7 +109,7 @@ exports.getCurrentCompetingUsers = async (req, res) => {
     // Get total eligible users
     const totalUsers = await User.count({
       where: {
-        role: "participant",
+        role: 'participant',
         suspended: false,
       },
     });
@@ -106,7 +118,7 @@ exports.getCurrentCompetingUsers = async (req, res) => {
     const activeContests = await Contest.findAll({
       where: {
         status: {
-          [Op.in]: ["Live", "Upcoming"],
+          [Op.in]: ['Live', 'Upcoming'],
         },
       },
     });
@@ -117,7 +129,7 @@ exports.getCurrentCompetingUsers = async (req, res) => {
       return res.json({
         competingUsers: 0,
         totalUsers,
-        percentage: "0.00",
+        percentage: '0.00',
       });
     }
 
@@ -135,7 +147,8 @@ exports.getCurrentCompetingUsers = async (req, res) => {
     });
 
     const count = uniqueUserIds.size;
-    const percent = totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : "0.00";
+    const percent =
+      totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(2) : '0.00';
 
     res.json({
       competingUsers: count,
@@ -143,256 +156,274 @@ exports.getCurrentCompetingUsers = async (req, res) => {
       percentage: percent,
     });
   } catch (err) {
-    console.error("❌ Error in getCurrentCompetingUsers:", err);
-    res.status(500).json({ message: "Internal Server Error", error: err.message });
+    console.error('❌ Error in getCurrentCompetingUsers:', err);
+    res
+      .status(500)
+      .json({ message: 'Internal Server Error', error: err.message });
   }
 };
 
 exports.getVotingAndCompetingStats = async (req, res) => {
-    try {
-      // 🔹 Total active users
-      const totalUsers = await User.findAll({
+  try {
+    // 🔹 Total active users
+    const totalUsers = await User.findAll({
+      where: {
+        role: 'participant',
+        suspended: false,
+      },
+      attributes: ['id'],
+      raw: true,
+    });
+    const totalUserIds = totalUsers.map((u) => u.id);
+
+    // 🔹 Users who have voted
+    const votedUsers = await Vote.findAll({
+      attributes: ['voter_id'],
+      group: ['voter_id'],
+      raw: true,
+    });
+    const votedUserIds = new Set(votedUsers.map((v) => v.voter_id));
+
+    // 🔹 Users who have competed (all-time)
+    const allCompetitions = await Competition.findAll({
+      attributes: ['user1_id', 'user2_id'],
+      raw: true,
+    });
+
+    const competedUserIds = new Set();
+    allCompetitions.forEach((comp) => {
+      if (comp.user1_id) competedUserIds.add(comp.user1_id);
+      if (comp.user2_id) competedUserIds.add(comp.user2_id);
+    });
+
+    // 🔹 Users who are currently competing (Live or Upcoming)
+    const activeCompetitions = await Competition.findAll({
+      include: {
+        model: Contest,
         where: {
-          role: "participant",
-          suspended: false,
+          status: { [Op.in]: ['Live', 'Upcoming'] },
         },
-        attributes: ["id"],
-        raw: true,
-      });
-      const totalUserIds = totalUsers.map((u) => u.id);
-  
-      // 🔹 Users who have voted
-      const votedUsers = await Vote.findAll({
-        attributes: ["voter_id"],
-        group: ["voter_id"],
-        raw: true,
-      });
-      const votedUserIds = new Set(votedUsers.map((v) => v.voter_id));
-  
-      // 🔹 Users who have competed (all-time)
-      const allCompetitions = await Competition.findAll({
-        attributes: ["user1_id", "user2_id"],
-        raw: true,
-      });
-  
-      const competedUserIds = new Set();
-      allCompetitions.forEach((comp) => {
-        if (comp.user1_id) competedUserIds.add(comp.user1_id);
-        if (comp.user2_id) competedUserIds.add(comp.user2_id);
-      });
-  
-      // 🔹 Users who are currently competing (Live or Upcoming)
-      const activeCompetitions = await Competition.findAll({
-        include: {
-          model: Contest,
-          where: {
-            status: { [Op.in]: ["Live", "Upcoming"] },
-          },
-        },
-        attributes: ["user1_id", "user2_id"],
-        raw: true,
-      });
-  
-      const currentlyCompetingUserIds = new Set();
-      activeCompetitions.forEach((comp) => {
-        if (comp.user1_id) currentlyCompetingUserIds.add(comp.user1_id);
-        if (comp.user2_id) currentlyCompetingUserIds.add(comp.user2_id);
-      });
-  
-      // 🔹 Intersections
-      const currentBoth = Array.from(currentlyCompetingUserIds).filter((id) =>
-        votedUserIds.has(id)
-      );
-      const allTimeBoth = Array.from(competedUserIds).filter((id) =>
-        votedUserIds.has(id)
-      );
-  
-      const totalCount = totalUserIds.length;
-  
-      res.json({
-        current: {
-          both: currentBoth.length,
-          totalUsers: totalCount,
-          percentage: totalCount > 0 ? ((currentBoth.length / totalCount) * 100).toFixed(2) : "0.00",
-        },
-        all_time: {
-          both: allTimeBoth.length,
-          totalUsers: totalCount,
-          percentage: totalCount > 0 ? ((allTimeBoth.length / totalCount) * 100).toFixed(2) : "0.00",
-        },
-      });
-    } catch (err) {
-      console.error("❌ Error in getVotingAndCompetingStats:", err);
-      res.status(500).json({ message: "Internal Server Error", error: err.message });
-    }
+      },
+      attributes: ['user1_id', 'user2_id'],
+      raw: true,
+    });
+
+    const currentlyCompetingUserIds = new Set();
+    activeCompetitions.forEach((comp) => {
+      if (comp.user1_id) currentlyCompetingUserIds.add(comp.user1_id);
+      if (comp.user2_id) currentlyCompetingUserIds.add(comp.user2_id);
+    });
+
+    // 🔹 Intersections
+    const currentBoth = Array.from(currentlyCompetingUserIds).filter((id) =>
+      votedUserIds.has(id)
+    );
+    const allTimeBoth = Array.from(competedUserIds).filter((id) =>
+      votedUserIds.has(id)
+    );
+
+    const totalCount = totalUserIds.length;
+
+    res.json({
+      current: {
+        both: currentBoth.length,
+        totalUsers: totalCount,
+        percentage:
+          totalCount > 0
+            ? ((currentBoth.length / totalCount) * 100).toFixed(2)
+            : '0.00',
+      },
+      all_time: {
+        both: allTimeBoth.length,
+        totalUsers: totalCount,
+        percentage:
+          totalCount > 0
+            ? ((allTimeBoth.length / totalCount) * 100).toFixed(2)
+            : '0.00',
+      },
+    });
+  } catch (err) {
+    console.error('❌ Error in getVotingAndCompetingStats:', err);
+    res
+      .status(500)
+      .json({ message: 'Internal Server Error', error: err.message });
+  }
 };
 
 exports.getVoterToCompetitorRatio = async (req, res) => {
-    try {
-      const totalUsers = await User.count({
-        where: { role: "participant", suspended: false },
-      });
-  
-      // All-time unique voters
-      const allTimeVoters = await Vote.aggregate("voter_id", "count", {
-        distinct: true,
-      });
-  
-      // All-time unique competitors
-      const allTimeCompetitorsRaw = await Competition.findAll({
-        attributes: ["user1_id", "user2_id"],
-      });
-  
-      const allTimeCompetitorIds = new Set();
-      allTimeCompetitorsRaw.forEach(({ user1_id, user2_id }) => {
-        if (user1_id) allTimeCompetitorIds.add(user1_id);
-        if (user2_id) allTimeCompetitorIds.add(user2_id);
-      });
-  
-      const allTimeCompetitors = allTimeCompetitorIds.size;
-      const allTimeRatio = allTimeCompetitors > 0
+  try {
+    const totalUsers = await User.count({
+      where: { role: 'participant', suspended: false },
+    });
+
+    // All-time unique voters
+    const allTimeVoters = await Vote.aggregate('voter_id', 'count', {
+      distinct: true,
+    });
+
+    // All-time unique competitors
+    const allTimeCompetitorsRaw = await Competition.findAll({
+      attributes: ['user1_id', 'user2_id'],
+    });
+
+    const allTimeCompetitorIds = new Set();
+    allTimeCompetitorsRaw.forEach(({ user1_id, user2_id }) => {
+      if (user1_id) allTimeCompetitorIds.add(user1_id);
+      if (user2_id) allTimeCompetitorIds.add(user2_id);
+    });
+
+    const allTimeCompetitors = allTimeCompetitorIds.size;
+    const allTimeRatio =
+      allTimeCompetitors > 0
         ? (allTimeVoters / allTimeCompetitors).toFixed(2)
-        : "0.00";
-  
-      // CURRENT snapshot — only Live or Upcoming contests
-      const activeContests = await Contest.findAll({
-        where: {
-          status: { [Op.in]: ["Live", "Upcoming"] },
-        },
-        attributes: ["id"],
-      });
-  
-      const activeContestIds = activeContests.map(c => c.id);
-  
-      const activeCompetitions = await Competition.findAll({
-        where: {
-          contest_id: { [Op.in]: activeContestIds },
-        },
-        attributes: ["user1_id", "user2_id"],
-      });
-  
-      const currentCompetitorIds = new Set();
-      activeCompetitions.forEach(({ user1_id, user2_id }) => {
-        if (user1_id) currentCompetitorIds.add(user1_id);
-        if (user2_id) currentCompetitorIds.add(user2_id);
-      });
-  
-      const currentCompetitors = currentCompetitorIds.size;
-  
-      const now = new Date();
-      const currentVoters = await Vote.count({
-        where: {
-          createdAt: { [Op.gte]: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) }, // last 7 days
-        },
-        distinct: true,
-        col: "voter_id",
-      });
-  
-      const currentRatio = currentCompetitors > 0
+        : '0.00';
+
+    // CURRENT snapshot — only Live or Upcoming contests
+    const activeContests = await Contest.findAll({
+      where: {
+        status: { [Op.in]: ['Live', 'Upcoming'] },
+      },
+      attributes: ['id'],
+    });
+
+    const activeContestIds = activeContests.map((c) => c.id);
+
+    const activeCompetitions = await Competition.findAll({
+      where: {
+        contest_id: { [Op.in]: activeContestIds },
+      },
+      attributes: ['user1_id', 'user2_id'],
+    });
+
+    const currentCompetitorIds = new Set();
+    activeCompetitions.forEach(({ user1_id, user2_id }) => {
+      if (user1_id) currentCompetitorIds.add(user1_id);
+      if (user2_id) currentCompetitorIds.add(user2_id);
+    });
+
+    const currentCompetitors = currentCompetitorIds.size;
+
+    const now = new Date();
+    const currentVoters = await Vote.count({
+      where: {
+        createdAt: {
+          [Op.gte]: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+        }, // last 7 days
+      },
+      distinct: true,
+      col: 'voter_id',
+    });
+
+    const currentRatio =
+      currentCompetitors > 0
         ? (currentVoters / currentCompetitors).toFixed(2)
-        : "0.00";
-  
-      res.json({
-        current: {
-          voters: currentVoters,
-          competitors: currentCompetitors,
-          ratio: currentRatio,
-        },
-        all_time: {
-          voters: allTimeVoters,
-          competitors: allTimeCompetitors,
-          ratio: allTimeRatio,
-        },
-      });
-    } catch (err) {
-      console.error("❌ Error in getVoterToCompetitorRatio:", err);
-      res.status(500).json({ message: "Internal Server Error", error: err.message });
-    }
+        : '0.00';
+
+    res.json({
+      current: {
+        voters: currentVoters,
+        competitors: currentCompetitors,
+        ratio: currentRatio,
+      },
+      all_time: {
+        voters: allTimeVoters,
+        competitors: allTimeCompetitors,
+        ratio: allTimeRatio,
+      },
+    });
+  } catch (err) {
+    console.error('❌ Error in getVoterToCompetitorRatio:', err);
+    res
+      .status(500)
+      .json({ message: 'Internal Server Error', error: err.message });
+  }
 };
 
 exports.getRetentionStats = async (req, res) => {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // normalize to start of day
-  
-      const intervals = [1, 7, 30];
-      const results = {};
-  
-      for (const days of intervals) {
-        const signupStart = new Date(today);
-        signupStart.setDate(signupStart.getDate() - days);
-  
-        // 🎯 Get users who signed up in the last N days (excluding today)
-        const cohortUsers = await User.findAll({
-          where: {
-            role: "participant",
-            suspended: false,
-            createdAt: {
-              [Op.gte]: signupStart,
-              [Op.lt]: today, // exclude today
-            },
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // normalize to start of day
+
+    const intervals = [1, 7, 30];
+    const results = {};
+
+    for (const days of intervals) {
+      const signupStart = new Date(today);
+      signupStart.setDate(signupStart.getDate() - days);
+
+      // 🎯 Get users who signed up in the last N days (excluding today)
+      const cohortUsers = await User.findAll({
+        where: {
+          role: 'participant',
+          suspended: false,
+          createdAt: {
+            [Op.gte]: signupStart,
+            [Op.lt]: today, // exclude today
           },
-          attributes: ["id"],
-        });
-  
-        const userIds = cohortUsers.map((u) => u.id);
-  
-        if (userIds.length === 0) {
-          results[`${days}_day`] = {
-            cohortSize: 0,
-            retained: 0,
-            percentage: "0.00",
-          };
-          continue;
-        }
-  
-        // ✅ Check if they EVER voted or competed since signup
-        const activeVotes = await Vote.findAll({
-          where: {
-            voter_id: { [Op.in]: userIds },
-            createdAt: { [Op.gte]: signupStart }, // since signup
-          },
-          attributes: ["voter_id"],
-          group: ["voter_id"],
-        });
-  
-        const activeCompetitions = await Competition.findAll({
-          where: {
-            [Op.or]: [
-              { user1_id: { [Op.in]: userIds } },
-              { user2_id: { [Op.in]: userIds } },
-            ],
-            createdAt: { [Op.gte]: signupStart }, // since signup
-          },
-          attributes: ["user1_id", "user2_id"],
-        });
-  
-        const retainedUserIds = new Set();
-        activeVotes.forEach((v) => retainedUserIds.add(v.voter_id));
-        activeCompetitions.forEach((c) => {
-          if (userIds.includes(c.user1_id)) retainedUserIds.add(c.user1_id);
-          if (userIds.includes(c.user2_id)) retainedUserIds.add(c.user2_id);
-        });
-  
-        const retainedCount = retainedUserIds.size;
-        const percentage = ((retainedCount / userIds.length) * 100).toFixed(2);
-  
+        },
+        attributes: ['id'],
+      });
+
+      const userIds = cohortUsers.map((u) => u.id);
+
+      if (userIds.length === 0) {
         results[`${days}_day`] = {
-          cohortSize: userIds.length,
-          retained: retainedCount,
-          percentage,
+          cohortSize: 0,
+          retained: 0,
+          percentage: '0.00',
         };
+        continue;
       }
-  
-      res.json(results);
-    } catch (err) {
-      console.error("❌ Error in getRetentionStats:", err);
-      res.status(500).json({ message: "Internal Server Error", error: err.message });
+
+      // ✅ Check if they EVER voted or competed since signup
+      const activeVotes = await Vote.findAll({
+        where: {
+          voter_id: { [Op.in]: userIds },
+          createdAt: { [Op.gte]: signupStart }, // since signup
+        },
+        attributes: ['voter_id'],
+        group: ['voter_id'],
+      });
+
+      const activeCompetitions = await Competition.findAll({
+        where: {
+          [Op.or]: [
+            { user1_id: { [Op.in]: userIds } },
+            { user2_id: { [Op.in]: userIds } },
+          ],
+          createdAt: { [Op.gte]: signupStart }, // since signup
+        },
+        attributes: ['user1_id', 'user2_id'],
+      });
+
+      const retainedUserIds = new Set();
+      activeVotes.forEach((v) => retainedUserIds.add(v.voter_id));
+      activeCompetitions.forEach((c) => {
+        if (userIds.includes(c.user1_id)) retainedUserIds.add(c.user1_id);
+        if (userIds.includes(c.user2_id)) retainedUserIds.add(c.user2_id);
+      });
+
+      const retainedCount = retainedUserIds.size;
+      const percentage = ((retainedCount / userIds.length) * 100).toFixed(2);
+
+      results[`${days}_day`] = {
+        cohortSize: userIds.length,
+        retained: retainedCount,
+        percentage,
+      };
     }
-  };
+
+    res.json(results);
+  } catch (err) {
+    console.error('❌ Error in getRetentionStats:', err);
+    res
+      .status(500)
+      .json({ message: 'Internal Server Error', error: err.message });
+  }
+};
 
 exports.getGlobalRetentionStats = async (req, res) => {
-try {
+  try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -401,155 +432,164 @@ try {
 
     // Get all user IDs
     const allUsers = await User.findAll({
-    where: {
-        role: "participant",
+      where: {
+        role: 'participant',
         suspended: false,
-    },
-    attributes: ["id"],
+      },
+      attributes: ['id'],
     });
 
-    const userIds = allUsers.map(u => u.id);
+    const userIds = allUsers.map((u) => u.id);
 
     if (userIds.length === 0) {
-    intervals.forEach(days => {
+      intervals.forEach((days) => {
         results[`${days}_day`] = {
-        totalUsers: 0,
-        active: 0,
-        percentage: "0.00",
+          totalUsers: 0,
+          active: 0,
+          percentage: '0.00',
         };
-    });
-    return res.json(results);
+      });
+      return res.json(results);
     }
 
     for (const days of intervals) {
-    const activityStart = new Date(today);
-    activityStart.setDate(activityStart.getDate() - days);
-    const activityEnd = new Date(today);
-    activityEnd.setDate(activityEnd.getDate() + 1);
+      const activityStart = new Date(today);
+      activityStart.setDate(activityStart.getDate() - days);
+      const activityEnd = new Date(today);
+      activityEnd.setDate(activityEnd.getDate() + 1);
 
-    const activeVotes = await Vote.findAll({
+      const activeVotes = await Vote.findAll({
         where: {
-        voter_id: { [Op.in]: userIds },
-        createdAt: {
+          voter_id: { [Op.in]: userIds },
+          createdAt: {
             [Op.gte]: activityStart,
             [Op.lt]: activityEnd,
+          },
         },
-        },
-        attributes: ["voter_id"],
-        group: ["voter_id"],
-    });
+        attributes: ['voter_id'],
+        group: ['voter_id'],
+      });
 
-    const activeCompetitions = await Competition.findAll({
+      const activeCompetitions = await Competition.findAll({
         where: {
-        createdAt: {
+          createdAt: {
             [Op.gte]: activityStart,
             [Op.lt]: activityEnd,
-        },
-        [Op.or]: [
+          },
+          [Op.or]: [
             { user1_id: { [Op.in]: userIds } },
             { user2_id: { [Op.in]: userIds } },
-        ],
+          ],
         },
-        attributes: ["user1_id", "user2_id"],
-    });
+        attributes: ['user1_id', 'user2_id'],
+      });
 
-    const activeContests = await Contest.findAll({
+      const activeContests = await Contest.findAll({
         where: {
-        creator_id: { [Op.in]: userIds },
-        createdAt: {
+          creator_id: { [Op.in]: userIds },
+          createdAt: {
             [Op.gte]: activityStart,
             [Op.lt]: activityEnd,
+          },
         },
-        },
-        attributes: ["creator_id"],
-    });
+        attributes: ['creator_id'],
+      });
 
-    const retainedUserIds = new Set();
-    activeVotes.forEach((v) => retainedUserIds.add(v.voter_id));
-    activeCompetitions.forEach((c) => {
+      const retainedUserIds = new Set();
+      activeVotes.forEach((v) => retainedUserIds.add(v.voter_id));
+      activeCompetitions.forEach((c) => {
         if (userIds.includes(c.user1_id)) retainedUserIds.add(c.user1_id);
         if (userIds.includes(c.user2_id)) retainedUserIds.add(c.user2_id);
-    });
-    activeContests.forEach((c) => retainedUserIds.add(c.creator_id));
+      });
+      activeContests.forEach((c) => retainedUserIds.add(c.creator_id));
 
-    const retainedCount = retainedUserIds.size;
-    const percentage = ((retainedCount / userIds.length) * 100).toFixed(2);
+      const retainedCount = retainedUserIds.size;
+      const percentage = ((retainedCount / userIds.length) * 100).toFixed(2);
 
-    results[`${days}_day`] = {
+      results[`${days}_day`] = {
         totalUsers: userIds.length,
         active: retainedCount,
         percentage,
-    };
+      };
     }
 
     res.json(results);
-} catch (err) {
-    console.error("❌ Error in getGlobalRetentionStats:", err);
-    res.status(500).json({ message: "Internal Server Error", error: err.message });
-}
+  } catch (err) {
+    console.error('❌ Error in getGlobalRetentionStats:', err);
+    res
+      .status(500)
+      .json({ message: 'Internal Server Error', error: err.message });
+  }
 };
 
 exports.getNewAndRepeatVotersPerWeek = async (req, res) => {
-    try {
-      // 🗓 Get last week's start date (Monday)
-      const now = new Date();
-      const lastWeekStart = new Date(now);
-      lastWeekStart.setDate(lastWeekStart.getDate() - ((now.getDay() + 6) % 7 + 7)); // Previous Monday
-      lastWeekStart.setHours(0, 0, 0, 0);
-  
-      const lastWeekEnd = new Date(lastWeekStart);
-      lastWeekEnd.setDate(lastWeekEnd.getDate() + 7);
-  
-      // ✅ Check if already recorded
-      const existing = await WeeklyVoterStats.findOne({
-        where: { weekStart: lastWeekStart.toISOString().slice(0, 10) },
-      });
-  
-      if (!existing) {
-        // 🔍 Find all voters and their first vote time
-        const votes = await Vote.findAll({
-          attributes: [
-            [Sequelize.fn("DATE_TRUNC", "week", Sequelize.col("createdAt")), "week"],
-            "voter_id",
-            [Sequelize.fn("MIN", Sequelize.col("createdAt")), "first_vote"]
+  try {
+    // 🗓 Get last week's start date (Monday)
+    const now = new Date();
+    const lastWeekStart = new Date(now);
+    lastWeekStart.setDate(
+      lastWeekStart.getDate() - (((now.getDay() + 6) % 7) + 7)
+    ); // Previous Monday
+    lastWeekStart.setHours(0, 0, 0, 0);
+
+    const lastWeekEnd = new Date(lastWeekStart);
+    lastWeekEnd.setDate(lastWeekEnd.getDate() + 7);
+
+    // ✅ Check if already recorded
+    const existing = await WeeklyVoterStats.findOne({
+      where: { weekStart: lastWeekStart.toISOString().slice(0, 10) },
+    });
+
+    if (!existing) {
+      // 🔍 Find all voters and their first vote time
+      const votes = await Vote.findAll({
+        attributes: [
+          [
+            Sequelize.fn('DATE_TRUNC', 'week', Sequelize.col('createdAt')),
+            'week',
           ],
-          where: {
-            createdAt: {
-              [Op.gte]: lastWeekStart,
-              [Op.lt]: lastWeekEnd
-            }
+          'voter_id',
+          [Sequelize.fn('MIN', Sequelize.col('createdAt')), 'first_vote'],
+        ],
+        where: {
+          createdAt: {
+            [Op.gte]: lastWeekStart,
+            [Op.lt]: lastWeekEnd,
           },
-          group: ["week", "voter_id"],
-          raw: true,
-        });
-  
-        let newVoters = 0;
-        let repeatVoters = 0;
-  
-        for (const v of votes) {
-          const firstVote = new Date(v.first_vote);
-          if (firstVote.getTime() === lastWeekStart.getTime()) {
-            newVoters++;
-          } else {
-            repeatVoters++;
-          }
-        }
-  
-        await WeeklyVoterStats.create({
-          weekStart: lastWeekStart.toISOString().slice(0, 10),
-          newVoters,
-          repeatVoters,
-        });
-      }
-  
-      // 📦 Return all weekly saved records
-      const allStats = await WeeklyVoterStats.findAll({
-        order: [["weekStart", "DESC"]],
+        },
+        group: ['week', 'voter_id'],
+        raw: true,
       });
-  
-      res.json(allStats);
-    } catch (err) {
-      console.error("❌ Error in getNewAndRepeatVotersPerWeek:", err);
-      res.status(500).json({ message: "Internal Server Error", error: err.message });
+
+      let newVoters = 0;
+      let repeatVoters = 0;
+
+      for (const v of votes) {
+        const firstVote = new Date(v.first_vote);
+        if (firstVote.getTime() === lastWeekStart.getTime()) {
+          newVoters++;
+        } else {
+          repeatVoters++;
+        }
+      }
+
+      await WeeklyVoterStats.create({
+        weekStart: lastWeekStart.toISOString().slice(0, 10),
+        newVoters,
+        repeatVoters,
+      });
     }
-  };
+
+    // 📦 Return all weekly saved records
+    const allStats = await WeeklyVoterStats.findAll({
+      order: [['weekStart', 'DESC']],
+    });
+
+    res.json(allStats);
+  } catch (err) {
+    console.error('❌ Error in getNewAndRepeatVotersPerWeek:', err);
+    res
+      .status(500)
+      .json({ message: 'Internal Server Error', error: err.message });
+  }
+};

@@ -34,6 +34,17 @@ const isUserMiddleware = async (req, res, next) => {
         .json({ message: 'Invalid token. User not found.' });
     }
 
+    // api path
+    let apiPath = req.baseUrl + req.route.path;
+
+    // ban user can have access of this two apis only
+    const accessForBanUser = ['/api/contact', '/api/auth/me'];
+
+    // restrict the bat user to access the apis
+    if (user.status === 'Ban' && !accessForBanUser.includes(apiPath)) {
+      return res.status(401).json({ message: 'User do not have access!' });
+    }
+
     req.user = {
       id: user.id,
       email: user.email,

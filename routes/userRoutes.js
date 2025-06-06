@@ -5,8 +5,10 @@ const {
   deleteUser,
   suspendUser,
   verifyAge,
+  closeWarnPopUp,
 } = require('../controllers/userController');
 const isAdminOrUserMiddleware = require('../middleware/isAdminOrUserMiddleware');
+const isUserMiddleware = require('../middleware/isUserMiddleware');
 
 const router = express.Router();
 
@@ -24,5 +26,8 @@ router.delete('/:id', isAdminOrUserMiddleware, deleteUser);
 
 // ✅ Fetch all users
 router.post('/verify-age', isAdminOrUserMiddleware, verifyAge);
+
+// ✅ Close the warn Popup
+router.post('/close-warn-popup', isUserMiddleware, closeWarnPopUp);
 
 module.exports = router;

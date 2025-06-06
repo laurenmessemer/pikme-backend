@@ -121,3 +121,6 @@ ALTER TABLE IF EXISTS public."Users"
 
 ALTER TABLE IF EXISTS public."Users"
     ADD COLUMN status TEXT DEFAULT 'Normal'::TEXT;
+
+ALTER TABLE IF EXISTS public."Reports"
+    ADD COLUMN status TEXT DEFAULT 'New'::TEXT;

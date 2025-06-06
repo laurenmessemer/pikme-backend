@@ -14,6 +14,7 @@ const getUsers = async (req, res) => {
         'referral_bonus_awarded',
         'is_verified',
         'suspended',
+        'status',
       ],
       include: [
         {
@@ -34,9 +35,10 @@ const getUsers = async (req, res) => {
       referral_bonus_awarded: user.referral_bonus_awarded,
       is_verified: user.is_verified,
       suspended: user.suspended,
+      status: user.status,
     }));
 
-    res.json(formattedUsers);
+    return res.status(200).json(formattedUsers);
   } catch (error) {
     console.error('❌ Error fetching users:', error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -56,6 +58,7 @@ const updateUser = async (req, res) => {
     is_verified,
     verification_token,
     suspended,
+    status,
   } = req.body;
 
   try {
@@ -78,6 +81,7 @@ const updateUser = async (req, res) => {
     user.is_verified = is_verified ?? user.is_verified;
     user.verification_token = verification_token ?? user.verification_token;
     user.suspended = suspended ?? user.suspended;
+    user.status = status ?? user.status;
 
     // ✅ Update token balance in Wallet
     if (user.Wallet) {
@@ -160,6 +164,32 @@ const verifyAge = async (req, res) => {
       .json({ message: 'Failed to update user.', error: error.message });
   }
 };
+
+const closeWarnPopUp = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    user.status = 'Normal';
+
+    await user.save();
+
+    let updatedUser = user.toJSON();
+    delete updatedUser.password_hash;
+    return res
+      .status(200)
+      .json({ message: 'User updated successfully.', user: updatedUser });
+  } catch (error) {
+    console.error('❌ Error updating user:', error);
+    res
+      .status(500)
+      .json({ message: 'Failed to update user.', error: error.message });
+  }
+};
+
 // ✅ Export functions
 module.exports = {
   getUsers,
@@ -167,4 +197,5 @@ module.exports = {
   deleteUser,
   suspendUser,
   verifyAge,
+  closeWarnPopUp,
 };
