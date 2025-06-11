@@ -66,6 +66,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.ENUM('Normal', 'Warn', 'Ban'),
         allowNull: true,
       },
+      is_uploaded: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
     },
     {
       timestamps: true,

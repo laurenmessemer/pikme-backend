@@ -104,6 +104,18 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ limit: '20mb', extended: true }));
 
+const STATIC_FOLDER = 'public';
+const STATIC_TEMP_PATH = '/temp';
+
+const fs = require('fs');
+if (!fs.existsSync(STATIC_FOLDER + STATIC_TEMP_PATH)) {
+  fs.mkdirSync(STATIC_FOLDER + STATIC_TEMP_PATH, {
+    recursive: true,
+  });
+}
+
+app.use(express.static(STATIC_FOLDER));
+
 // ✅ API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes); // ✅ Add User Routes
