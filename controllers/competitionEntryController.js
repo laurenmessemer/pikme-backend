@@ -221,6 +221,7 @@ const confirmPayment = async (req, res) => {
       if (competition) {
         competition.user2_id = user_id;
         competition.user2_image = pendingEntry.user1_image;
+        competition.user2_join_date = new Date();
         competition.status = 'Active';
         await competition.save();
         joinedExistingMatch = true;
@@ -335,6 +336,7 @@ const enterCompetition = async (req, res) => {
       if (competition) {
         competition.user2_id = user_id;
         competition.user2_image = pendingEntry.user1_image;
+        competition.user2_join_date = new Date();
         competition.status = 'Active';
         await competition.save();
         joinedExistingMatch = true;
@@ -608,6 +610,7 @@ const acceptInvite = async (req, res) => {
     // Update competition
     competition.user2_id = user_id;
     competition.user2_image = imageUrl;
+    competition.user2_join_date = new Date();
     competition.status = 'Active';
     await competition.save();
 

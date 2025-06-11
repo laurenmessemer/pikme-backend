@@ -431,6 +431,7 @@ exports.reinviteOpponent = async (req, res) => {
       if (ongoingCompetition) {
         ongoingCompetition.user2_id = competition.user1_id;
         ongoingCompetition.user2_image = competition.user1_image;
+        ongoingCompetition.user2_join_date = new Date();
         ongoingCompetition.status = 'Active';
         await ongoingCompetition.save();
         joinedExistingMatch = true;

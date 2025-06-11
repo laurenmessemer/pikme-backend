@@ -124,3 +124,28 @@ ALTER TABLE IF EXISTS public."Users"
 
 ALTER TABLE IF EXISTS public."Reports"
     ADD COLUMN status TEXT DEFAULT 'New'::TEXT;
+
+
+-- Stage 3
+CREATE TABLE IF NOT EXISTS public."WeeklyCompetitorStats"
+(
+    "weekStart" date NOT NULL,
+    "newCompetitor" integer NOT NULL,
+    "repeatCompetitor" integer NOT NULL,
+    "createdAt" timestamp with time zone DEFAULT now(),
+    "updatedAt" timestamp with time zone DEFAULT now(),
+    CONSTRAINT "WeeklyCompetitorStats_pkey" PRIMARY KEY ("weekStart")
+)
+
+ALTER TABLE IF EXISTS public."Competitions"
+    ADD COLUMN user2_join_date timestamp with time zone;
+
+CREATE TABLE IF NOT EXISTS public."WeeklyReportStats"
+(
+    "weekStart" date NOT NULL,
+    "reportCount" integer NOT NULL,
+    "totalImagesCount" integer NOT NULL,
+    "createdAt" timestamp with time zone DEFAULT now(),
+    "updatedAt" timestamp with time zone DEFAULT now(),
+    CONSTRAINT "WeeklyReportStats_pkey" PRIMARY KEY ("weekStart")
+)
