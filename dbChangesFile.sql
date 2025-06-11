@@ -149,3 +149,7 @@ CREATE TABLE IF NOT EXISTS public."WeeklyReportStats"
     "updatedAt" timestamp with time zone DEFAULT now(),
     CONSTRAINT "WeeklyReportStats_pkey" PRIMARY KEY ("weekStart")
 )
+
+--Stage 4
+ALTER TABLE IF EXISTS public."Users"
+    ADD COLUMN is_uploaded BOOLEAN DEFAULT FALSE;

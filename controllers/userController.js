@@ -1,4 +1,11 @@
 const { User, Wallet } = require('../models');
+const jsonexport = require('jsonexport');
+const fs = require('fs');
+const path = require('path');
+const csv = require('csv-parser');
+const { Readable } = require('stream');
+const moment = require('moment');
+const { default: axios } = require('axios');
 
 // ✅ Enhanced Get Users with More Debugging
 const getUsers = async (req, res) => {
@@ -42,6 +49,124 @@ const getUsers = async (req, res) => {
   } catch (error) {
     console.error('❌ Error fetching users:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// download the template to upload the multiple users at a time
+const downloadTemplate = async (req, res) => {
+  try {
+    let responseExport = [
+      {
+        username: 'pikme user',
+        email: 'pikmeuser@gmail.com',
+      },
+    ];
+
+    jsonexport(responseExport, function (err, csv) {
+      if (err) {
+        throw err;
+      }
+      fs.writeFile('user_list.csv', csv, function (err) {
+        if (err) {
+          throw err;
+        }
+        let readStream = fs.createReadStream('user_list.csv');
+        res.setHeader(
+          'Content-disposition',
+          'attachment; filename=user_list.csv'
+        );
+        readStream.pipe(res.status(200).send(csv));
+      });
+    });
+  } catch (error) {
+    console.error('❌ Error uploading user:', error);
+    res
+      .status(500)
+      .json({ message: 'Failed to upload user.', error: error.message });
+  }
+};
+
+// upload the User with the csv file
+const uploadUsers = async (req, res) => {
+  try {
+    const file = req.files.csv;
+
+    if (!file || file.mimetype !== 'text/csv') {
+      return res.status(400).json({ message: 'No file uploaded.' });
+    }
+
+    const readable = Readable.from(file.data);
+    const results = [];
+
+    const parsedData = await new Promise((resolve, reject) => {
+      readable
+        .pipe(csv())
+        .on('data', (row) => {
+          results.push(row);
+        })
+        .on('end', () => {
+          resolve(results);
+        })
+        .on('error', (err) => {
+          reject(err);
+        });
+    });
+
+    const errorArr = [];
+
+    const handleError = (line, email, message) => {
+      errorArr.push({ line, email, message });
+    };
+
+    for (let i = 0; i < parsedData.length; i++) {
+      const user = parsedData[i];
+      const targetDate = moment.utc().subtract(18, 'years').subtract(5, 'days');
+
+      if (user.username && user.email) {
+        try {
+          const apiResponse = await axios.post(
+            process.env.BACKEND_URL + 'api/auth/register', // target API
+            {
+              username: user.username.trim(),
+              password: 'TestUser@123',
+              email: user.email.trim(),
+              dateOfBirth: targetDate.format('YYYY-MM-DD HH:mm:ssZ'),
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          if (apiResponse.data.user.id) {
+            const updateUser = await User.update(
+              {
+                is_verified: true,
+                verification_token: null,
+                is_uploaded: true,
+              },
+              {
+                where: { id: apiResponse.data.user.id },
+              }
+            );
+          }
+        } catch (error) {
+          await handleError(i + 2, user?.email, error?.response?.data?.message);
+        }
+      } else {
+        await handleError(i + 2, user?.email, 'Missing Required fields');
+      }
+    }
+
+    return res
+      .status(200)
+      .json({ message: 'User uploaded successfully.', userErrorArr: errorArr });
+  } catch (err) {
+    console.log('err: ', err);
+    return res
+      .status(500)
+      .json({ message: 'error in the user upload', error: err.message });
   }
 };
 
@@ -193,9 +318,11 @@ const closeWarnPopUp = async (req, res) => {
 // ✅ Export functions
 module.exports = {
   getUsers,
+  downloadTemplate,
   updateUser,
   deleteUser,
   suspendUser,
   verifyAge,
   closeWarnPopUp,
+  uploadUsers,
 };
