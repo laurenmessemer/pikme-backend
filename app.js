@@ -3,6 +3,7 @@ const express = require('express');
 const sequelize = require('./config/db');
 const path = require('path');
 const fileUpload = require('express-fileupload');
+const moment = require('moment');
 require('./models');
 
 // ✅ Add cron + controller
@@ -40,6 +41,10 @@ const cors = require('cors');
 const determineWinnersFunction = require('./utils/determineWinners');
 const weeklyTopVoters = require('./utils/weeklyTopVoters');
 const weeklyTopReferrers = require('./utils/weeklyTopReferrers');
+const {
+  recordWeeklyCompetitorStats,
+} = require('./utils/recordWeeklyCompetitorStats');
+const { recordWeeklyReportStats } = require('./utils/recordWeeklyReportStats');
 
 const allowedOrigins = [
   'https://pikme.zignuts.dev',
@@ -142,6 +147,8 @@ cron.schedule('5 0 * * 1', async () => {
   console.log('📊 Running weekly voter stats cron...');
   try {
     await recordWeeklyVoterStats();
+    await recordWeeklyCompetitorStats();
+    await recordWeeklyReportStats();
     await determineWinnersFunction();
     console.log('✅ Weekly voter stats recorded.');
   } catch (err) {

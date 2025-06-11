@@ -4,9 +4,17 @@ const {
   Competition,
   Contest,
   WeeklyVoterStats,
+  WeeklyCompetitorStats,
+  WeeklyReportStats,
 } = require('../models');
 const { getDateFilters } = require('../utils/metricsUtils');
 const { Op, Sequelize } = require('sequelize');
+const moment = require('moment');
+const {
+  recordWeeklyCompetitorStats,
+} = require('../utils/recordWeeklyCompetitorStats');
+const { recordWeeklyVoterStats } = require('../utils/recordWeeklyVoterStats');
+const { recordWeeklyReportStats } = require('../utils/recordWeeklyReportStats');
 
 exports.getVoteMetrics = async (req, res) => {
   const { userId } = req.params;
@@ -524,16 +532,15 @@ exports.getGlobalRetentionStats = async (req, res) => {
 
 exports.getNewAndRepeatVotersPerWeek = async (req, res) => {
   try {
-    // 🗓 Get last week's start date (Monday)
-    const now = new Date();
-    const lastWeekStart = new Date(now);
-    lastWeekStart.setDate(
-      lastWeekStart.getDate() - (((now.getDay() + 6) % 7) + 7)
-    ); // Previous Monday
-    lastWeekStart.setHours(0, 0, 0, 0);
+    const today = moment();
 
-    const lastWeekEnd = new Date(lastWeekStart);
-    lastWeekEnd.setDate(lastWeekEnd.getDate() + 7);
+    // Get the previous week's Monday 00:00:00
+    const lastWeekStart = today
+      .clone()
+      .startOf('isoWeek')
+      .subtract(1, 'week')
+      .startOf('day')
+      .toDate();
 
     // ✅ Check if already recorded
     const existing = await WeeklyVoterStats.findOne({
@@ -541,53 +548,92 @@ exports.getNewAndRepeatVotersPerWeek = async (req, res) => {
     });
 
     if (!existing) {
-      // 🔍 Find all voters and their first vote time
-      const votes = await Vote.findAll({
-        attributes: [
-          [
-            Sequelize.fn('DATE_TRUNC', 'week', Sequelize.col('createdAt')),
-            'week',
-          ],
-          'voter_id',
-          [Sequelize.fn('MIN', Sequelize.col('createdAt')), 'first_vote'],
-        ],
-        where: {
-          createdAt: {
-            [Op.gte]: lastWeekStart,
-            [Op.lt]: lastWeekEnd,
-          },
-        },
-        group: ['week', 'voter_id'],
-        raw: true,
-      });
-
-      let newVoters = 0;
-      let repeatVoters = 0;
-
-      for (const v of votes) {
-        const firstVote = new Date(v.first_vote);
-        if (firstVote.getTime() === lastWeekStart.getTime()) {
-          newVoters++;
-        } else {
-          repeatVoters++;
-        }
-      }
-
-      await WeeklyVoterStats.create({
-        weekStart: lastWeekStart.toISOString().slice(0, 10),
-        newVoters,
-        repeatVoters,
-      });
+      await recordWeeklyVoterStats();
     }
 
     // 📦 Return all weekly saved records
     const allStats = await WeeklyVoterStats.findAll({
       order: [['weekStart', 'DESC']],
+      limit: 8,
     });
 
     res.json(allStats);
   } catch (err) {
     console.error('❌ Error in getNewAndRepeatVotersPerWeek:', err);
+    res
+      .status(500)
+      .json({ message: 'Internal Server Error', error: err.message });
+  }
+};
+
+exports.getNewAndRepeatCompetitorPerWeek = async (req, res) => {
+  try {
+    const today = moment();
+
+    // Get the previous week's Monday 00:00:00
+    const lastWeekStart = today
+      .clone()
+      .startOf('isoWeek')
+      .subtract(1, 'week')
+      .startOf('day')
+      .toDate();
+
+    // ✅ Check if already recorded
+
+    const existing = await WeeklyCompetitorStats.findOne({
+      where: { weekStart: lastWeekStart.toISOString().slice(0, 10) },
+    });
+
+    if (!existing) {
+      await recordWeeklyCompetitorStats();
+    }
+
+    // 📦 Return all weekly saved records
+    const allStats = await WeeklyCompetitorStats.findAll({
+      order: [['weekStart', 'DESC']],
+      limit: 8,
+    });
+
+    res.json(allStats);
+  } catch (err) {
+    console.error('❌ Error in getNewAndRepeatCompetitorPerWeek:', err);
+    res
+      .status(500)
+      .json({ message: 'Internal Server Error', error: err.message });
+  }
+};
+
+exports.getReportCountRatePerWeek = async (req, res) => {
+  try {
+    const today = moment();
+
+    // Get the previous week's Monday 00:00:00
+    const lastWeekStart = today
+      .clone()
+      .startOf('isoWeek')
+      .subtract(1, 'week')
+      .startOf('day')
+      .toDate();
+
+    // ✅ Check if already recorded
+
+    const existing = await WeeklyReportStats.findOne({
+      where: { weekStart: lastWeekStart.toISOString().slice(0, 10) },
+    });
+
+    if (!existing) {
+      await recordWeeklyReportStats();
+    }
+
+    // 📦 Return all weekly saved records
+    const allStats = await WeeklyReportStats.findAll({
+      order: [['weekStart', 'DESC']],
+      limit: 8,
+    });
+
+    res.json(allStats);
+  } catch (err) {
+    console.error('❌ Error in getReportCountRatePerWeek:', err);
     res
       .status(500)
       .json({ message: 'Internal Server Error', error: err.message });

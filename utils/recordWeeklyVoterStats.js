@@ -1,17 +1,28 @@
 const { Vote, WeeklyVoterStats } = require('../models');
 const { Sequelize } = require('sequelize');
+const moment = require('moment');
 
 exports.recordWeeklyVoterStats = async () => {
-  const today = new Date();
+  // Get current date
+  const today = moment();
 
-  // Get the previous week's Monday (start of week)
-  const lastWeekStart = new Date(today);
-  lastWeekStart.setDate(today.getDate() - today.getDay() - 6); // Previous Monday
-  lastWeekStart.setHours(0, 0, 0, 0);
+  // Get the previous week's Monday 00:00:00
+  const lastWeekStart = today
+    .clone()
+    .startOf('isoWeek')
+    .subtract(1, 'week')
+    .startOf('day')
+    .toDate();
 
-  const lastWeekEnd = new Date(lastWeekStart);
-  lastWeekEnd.setDate(lastWeekStart.getDate() + 7); // Following Monday
+  // Get the previous week's Sunday 23:59:59
+  const lastWeekEnd = today
+    .clone()
+    .startOf('isoWeek')
+    .subtract(1, 'day')
+    .endOf('day')
+    .toDate();
 
+  // return true;
   try {
     // Fetch all voters and their first vote times, grouped by voter
     const voters = await Vote.findAll({

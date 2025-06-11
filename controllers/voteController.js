@@ -35,7 +35,6 @@ exports.getVotingEntries = async (req, res) => {
         },
       ],
       order: [Sequelize.literal('RANDOM()')],
-      limit: 5,
     });
 
     if (!competitions || competitions.length === 0) {

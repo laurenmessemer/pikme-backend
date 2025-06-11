@@ -42,6 +42,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: true,
       },
+      user2_join_date: {
+        type: DataTypes.DATE,
+        allowNull: false,
+      },
       match_type: {
         type: DataTypes.ENUM('pick_random', 'invite_friend'),
         allowNull: false,

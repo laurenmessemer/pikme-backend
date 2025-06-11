@@ -44,6 +44,16 @@ router.get(
   metricsController.getNewAndRepeatVotersPerWeek
 );
 router.get(
+  '/competitor/new-vs-repeat',
+  isAdminMiddleware,
+  metricsController.getNewAndRepeatCompetitorPerWeek
+);
+router.get(
+  '/report/report-rate',
+  isAdminMiddleware,
+  metricsController.getReportCountRatePerWeek
+);
+router.get(
   '/votes/:userId',
   isAdminMiddleware,
   metricsController.getVoteMetrics
