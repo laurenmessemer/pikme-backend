@@ -33,7 +33,12 @@ exports.getTopVoters = async (req, res) => {
     const voteArray = await Promise.all(
       Object.entries(voteMap).map(async ([id, count]) => {
         const user = await User.findByPk(id);
-        return { id, username: user.username, count };
+        return {
+          id,
+          username: user.username,
+          count,
+          isUploaded: user.is_uploaded,
+        };
       })
     );
 
@@ -82,7 +87,12 @@ exports.getTopReferrers = async (req, res) => {
     const referralArray = await Promise.all(
       Object.entries(referralMap).map(async ([id, count]) => {
         const user = await User.findByPk(id);
-        return { id, username: user.username, count };
+        return {
+          id,
+          username: user.username,
+          count,
+          isUploaded: user.is_uploaded,
+        };
       })
     );
 

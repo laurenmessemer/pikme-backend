@@ -190,6 +190,8 @@ const determineWinnersFunction = async () => {
                   C."id" AS "contest_id",
                   CT."id" AS "competition_id",
                   V."voted_for",
+                  U."id",
+                  U."is_uploaded",
                   COUNT(*) AS "total_votes",
                   DENSE_RANK() OVER (
                     PARTITION BY
@@ -202,13 +204,20 @@ const determineWinnersFunction = async () => {
                   "Contests" C
                   JOIN "Competitions" CT ON C."id" = CT."contest_id"
                   JOIN "Votes" V ON CT."id" = V."competition_id"
+                  JOIN "Users" U ON (
+                    (V."voted_for" = 'user1' AND U."id" = CT."user1_id") OR 
+                    (V."voted_for" = 'user2' AND U."id" = CT."user2_id")
+                  )
                 WHERE
                   C."voting_deadline"::DATE < CURRENT_DATE
                   AND C."id" in ('${contestIds.join(`','`)}')
+                  AND U."is_uploaded" = false
                 GROUP BY
                   C."id",
                   CT."id",
-                  V."voted_for"
+                  V."voted_for",
+                  U."id",
+                  U."is_uploaded"
                 ORDER BY
                   C."id" ASC,
                   C."createdAt" DESC,

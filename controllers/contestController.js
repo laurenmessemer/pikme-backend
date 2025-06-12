@@ -1,6 +1,9 @@
-const { Contest, User, Theme, Competition } = require('../models'); // ✅ Ensure Theme is imported
+const { Contest, User, Theme } = require('../models'); // ✅ Ensure Theme is imported
 const { Op, literal } = require('sequelize');
 const notifyUserOnContestOpen = require('../utils/notifyUserOnContestOpen');
+const jsonexport = require('jsonexport');
+const fs = require('fs');
+const fakeUserParticipants = require('../utils/fakeUserParticipants');
 
 // ✅ Fetch all contests
 const getAllContests = async (req, res) => {
@@ -18,6 +21,104 @@ const getAllContests = async (req, res) => {
     res.json(contests);
   } catch (error) {
     console.error('❌ Error fetching contests:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// ✅ Download the sample template
+const downlaodContestTemplate = async (req, res) => {
+  try {
+    const users = await User.findAll({
+      where: {
+        is_uploaded: true,
+      },
+    });
+
+    let responseExport = users.map((user) => ({
+      email: user.email,
+      imageUrl: '',
+    }));
+
+    jsonexport(responseExport, function (err, csv) {
+      if (err) {
+        throw err;
+      }
+      fs.writeFile('contest_sample_template.csv', csv, function (err) {
+        if (err) {
+          throw err;
+        }
+        let readStream = fs.createReadStream('contest_sample_template.csv');
+        res.setHeader(
+          'Content-disposition',
+          'attachment; filename=contest_sample_template.csv'
+        );
+        readStream.pipe(res.status(200).send(csv));
+      });
+    });
+  } catch (error) {
+    console.error('❌ Error fetching contests:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+// Join the fake participants
+const uploadFakeParticipants = async (req, res) => {
+  try {
+    const { constestId } = req.body;
+
+    const file = req.files.csv;
+
+    if (!file || file.mimetype !== 'text/csv') {
+      return res.status(400).json({ message: 'No file uploaded.' });
+    }
+
+    if (!constestId || isNaN(constestId)) {
+      console.warn('Invalid or missing contest ID:', constestId);
+      return res.status(400).json({ error: 'Invalid contest ID' });
+    }
+
+    const contest = await Contest.findOne({
+      where: {
+        id: constestId,
+        status: {
+          [Op.or]: ['Live'],
+        },
+        submission_deadline: {
+          [Op.gt]: new Date(),
+        },
+      },
+      include: [
+        {
+          model: Theme,
+          as: 'Theme',
+          attributes: ['name', 'description', 'cover_image_url'],
+        },
+      ],
+    });
+
+    if (!contest) {
+      return res
+        .status(400)
+        .json({ error: 'Contest not found or it may not go live' });
+    }
+
+    const response = await fakeUserParticipants(contest, file);
+
+    if (response.isError) {
+      return res.status(500).json({
+        error: response.error,
+        message: 'Error in the Fake user voting',
+      });
+    }
+
+    return res.status(200).json({
+      contest,
+      message: response.message,
+      count: response?.count || 0,
+      userErrorArr: response?.errorArr,
+    });
+  } catch (error) {
+    console.error('❌ Error fetching contest by ID:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
@@ -244,6 +345,8 @@ const deleteContest = async (req, res) => {
 // ✅ Export functions correctly
 module.exports = {
   getAllContests,
+  downlaodContestTemplate,
+  uploadFakeParticipants,
   getContestById,
   getLiveContests,
   getLiveAndUpcomingContests,
