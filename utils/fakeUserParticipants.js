@@ -35,7 +35,6 @@ const fakeUserParticipants = async (contest, file) => {
     // shuffed users and combine the users
     let shuffled = [...(await shuffleArray(parsedData)), ...slicedArr];
 
-    const imageUrlRegex = /^https?:\/\/.*\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     let count = 0;
@@ -45,11 +44,6 @@ const fakeUserParticipants = async (contest, file) => {
       if (user.email && user.imageUrl) {
         if (!emailRegex.test(user.email)) {
           await handleError(i + 2, user?.email, 'Invalid Email Format');
-          continue;
-        }
-
-        if (!imageUrlRegex.test(user.imageUrl)) {
-          await handleError(i + 2, user?.email, 'Invalid Image URL');
           continue;
         }
 
