@@ -52,6 +52,14 @@ const convertToS3Url = async (url, user_id) => {
       };
     }
 
+    if (!detectedType.mime.startsWith('image')) {
+      return {
+        isError: true,
+        error,
+        message: 'Invalid Image Format',
+      };
+    }
+
     const bucketName = process.env.S3_BUCKET_NAME;
     const key = `uploads/${Date.now()}-${user_id}.${detectedType?.ext}`;
 
@@ -72,7 +80,7 @@ const convertToS3Url = async (url, user_id) => {
     return {
       isError: true,
       error,
-      message: 'Error in Upload to S3URL',
+      message: 'Error in Upload to S3Url',
     };
   }
 };
