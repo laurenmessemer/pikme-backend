@@ -27,6 +27,7 @@ const getUsers = async (req, res) => {
         'is_verified',
         'suspended',
         'status',
+        'is_uploaded',
       ],
       include: [
         {
