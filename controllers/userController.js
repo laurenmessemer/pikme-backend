@@ -6,11 +6,16 @@ const csv = require('csv-parser');
 const { Readable } = require('stream');
 const moment = require('moment');
 const { default: axios } = require('axios');
-
+const { Op, Sequelize } = require('sequelize');
 // ✅ Enhanced Get Users with More Debugging
 const getUsers = async (req, res) => {
   try {
     const users = await User.findAll({
+      where: {
+        id: {
+          [Op.ne]: 99999,
+        },
+      },
       attributes: [
         'id',
         'username',
@@ -118,20 +123,40 @@ const uploadUsers = async (req, res) => {
       errorArr.push({ line, email, message });
     };
 
+    const findRandomUser = await User.findAll({
+      where: {
+        id: {
+          [Op.ne]: 99999,
+        },
+        is_uploaded: false,
+      },
+      order: [Sequelize.literal('RANDOM()')],
+      limit: 10,
+    });
+
+    let count = 0;
     for (let i = 0; i < parsedData.length; i++) {
       const user = parsedData[i];
       const targetDate = moment.utc().subtract(18, 'years').subtract(5, 'days');
 
       if (user.username && user.email) {
         try {
+          const payload = {
+            username: user.username.trim(),
+            password: 'TestUser@123',
+            email: user.email.trim(),
+            dateOfBirth: targetDate.format('YYYY-MM-DD HH:mm:ssZ'),
+          };
+
+          if (i < 15) {
+            payload['referralCode'] =
+              findRandomUser[
+                Math.floor(Math.random() * findRandomUser.length)
+              ].referral_code;
+          }
           const apiResponse = await axios.post(
             process.env.BACKEND_URL + 'api/auth/register', // target API
-            {
-              username: user.username.trim(),
-              password: 'TestUser@123',
-              email: user.email.trim(),
-              dateOfBirth: targetDate.format('YYYY-MM-DD HH:mm:ssZ'),
-            },
+            payload,
             {
               headers: {
                 'Content-Type': 'application/json',
@@ -151,17 +176,25 @@ const uploadUsers = async (req, res) => {
               }
             );
           }
+          count++; // update the count
         } catch (error) {
           await handleError(i + 2, user?.email, error?.response?.data?.message);
         }
-      } else {
+      } else if (user.username || user.email) {
         await handleError(i + 2, user?.email, 'Missing Required fields');
+      } else {
+        // do nothing
       }
     }
 
-    return res
-      .status(200)
-      .json({ message: 'User uploaded successfully.', userErrorArr: errorArr });
+    return res.status(200).json({
+      message:
+        count === 0
+          ? `No users uploaded.`
+          : `${count} Users uploaded successfully.`,
+      count,
+      userErrorArr: errorArr,
+    });
   } catch (err) {
     console.log('err: ', err);
     return res

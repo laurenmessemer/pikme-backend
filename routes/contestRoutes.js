@@ -7,14 +7,30 @@ const {
   getLiveAndUpcomingContests,
   updateContest,
   deleteContest,
+  downlaodContestTemplate,
+  uploadFakeParticipants,
 } = require('../controllers/contestController'); // ✅ Ensure correct import
 const isAdminOrUserMiddleware = require('../middleware/isAdminOrUserMiddleware');
-const isUserMiddleware = require('../middleware/isUserMiddleware');
+const isAdminMiddleware = require('../middleware/isAdminMiddleware');
 
 const router = express.Router();
 
 // ✅ Fetch all contests
 router.get('/', isAdminOrUserMiddleware, getAllContests);
+
+// Download the sample template of the contest
+router.get(
+  '/downlaod-contest-template',
+  isAdminMiddleware,
+  downlaodContestTemplate
+);
+
+// upload contest dummy participents in the contest
+router.post(
+  '/upload-fake-participents',
+  isAdminMiddleware,
+  uploadFakeParticipants
+);
 
 // ✅ Fetch only live contests
 router.get('/live', getLiveContests);
