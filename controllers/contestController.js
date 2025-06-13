@@ -66,7 +66,7 @@ const uploadFakeParticipants = async (req, res) => {
   try {
     const { constestId } = req.body;
 
-    const file = req.files.csv;
+    const file = req.files.file;
 
     if (!file || file.mimetype !== 'text/csv') {
       return res.status(400).json({ message: 'No file uploaded.' });

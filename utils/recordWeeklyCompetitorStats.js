@@ -62,7 +62,8 @@ exports.recordWeeklyCompetitorStats = async () => {
         "userId",
         MIN("first_time_join") AS "first_time_join"
       FROM
-        "combined_users"
+        "combined_users" CB JOIN "Users" U ON CB."userId" = U.id
+      WHERE U."is_uploaded" = FALSE
       GROUP BY
         "userId"
       ORDER BY
