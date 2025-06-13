@@ -4,13 +4,11 @@ const multer = require('multer');
 const { v1: uuidv1 } = require('uuid');
 
 const dirName = 'public/temp';
-console.log('dirName: ', dirName);
 
 const handleFileMulter = (req, res, next) => {
   try {
     // Make directory if it does not exist
     if (!fs.existsSync(dirName)) {
-      console.log('dirName 2: ', dirName);
       fs.mkdirSync(dirName, { recursive: true });
     }
 
@@ -33,7 +31,7 @@ const handleFileMulter = (req, res, next) => {
       },
     });
 
-    multerUpload.array('csv', 1);
+    multerUpload.array('file', 1);
     next();
   } catch (error) {
     console.log('error: ', error);

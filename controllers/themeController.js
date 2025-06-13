@@ -2,6 +2,7 @@ const { Theme, ThemeEntry } = require('../models');
 const dotenv = require('dotenv');
 const { v1: uuidv1 } = require('uuid');
 const AWS = require('aws-sdk');
+const path = require('path');
 require('dotenv').config();
 
 // ✅ Initialize S3 instance
@@ -14,11 +15,11 @@ const s3 = new AWS.S3({
 // ✅ Upload File to S3 using AWS credentials directly (no presigned link)
 exports.directUpload = async (req, res) => {
   try {
-    if (!req.files || !req.files.coverImage) {
+    if (!req.files || !req.files.file) {
       return res.status(400).json({ message: 'No image provided.' });
     }
 
-    const file = req.files.coverImage;
+    const file = req.files.file;
     const extension = path.extname(file.name);
     const key = `themes/${uuidv1()}${extension}`;
 

@@ -30,6 +30,15 @@ exports.recordWeeklyVoterStats = async () => {
         'voter_id',
         [Sequelize.fn('MIN', Sequelize.col('createdAt')), 'first_vote'],
       ],
+      include: [
+        {
+          model: User,
+          where: {
+            is_uploaded: false,
+          },
+          attributes: [],
+        },
+      ],
       group: ['voter_id'],
       raw: true,
     });

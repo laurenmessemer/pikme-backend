@@ -33,16 +33,16 @@ exports.recordWeeklyReportStats = async () => {
           FROM
             "Competitions"
           WHERE
-            "createdAt" > '2025-05-25T18:30:00.000Z'
-            AND "createdAt" < '2025-06-01T18:29:59.999Z'
+            "createdAt" > '${lastWeekStart}'
+            AND "createdAt" < '${lastWeekEnd}'
         ) + (
           SELECT
             COUNT(*)
           FROM
             "Competitions"
           WHERE
-            "user2_join_date" > '2025-05-25T18:30:00.000Z'
-            AND "user2_join_date" < '2025-06-01T18:29:59.999Z'
+            "user2_join_date" > '${lastWeekStart}'
+            AND "user2_join_date" < '${lastWeekEnd}'
         ) AS TOTAL_COUNT;`;
 
     const results = await sequelize.query(queryString, {

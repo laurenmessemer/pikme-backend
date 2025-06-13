@@ -12,6 +12,7 @@ const {
 } = require('../controllers/contestController'); // ✅ Ensure correct import
 const isAdminOrUserMiddleware = require('../middleware/isAdminOrUserMiddleware');
 const isAdminMiddleware = require('../middleware/isAdminMiddleware');
+const handleFileMulter = require('../middleware/handleFileMulter');
 
 const router = express.Router();
 
@@ -29,6 +30,7 @@ router.get(
 router.post(
   '/upload-fake-participents',
   isAdminMiddleware,
+  handleFileMulter,
   uploadFakeParticipants
 );
 

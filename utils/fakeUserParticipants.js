@@ -29,11 +29,8 @@ const fakeUserParticipants = async (contest, file) => {
         });
     });
 
-    // get the half users
-    const slicedArr = parsedData.slice(0, parseInt(parsedData.length / 2));
-
     // shuffed users and combine the users
-    let shuffled = [...(await shuffleArray(parsedData)), ...slicedArr];
+    let shuffled = await shuffleArray(parsedData);
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

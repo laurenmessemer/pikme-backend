@@ -49,6 +49,7 @@ const getUsers = async (req, res) => {
       is_verified: user.is_verified,
       suspended: user.suspended,
       status: user.status,
+      is_uploaded: user.is_uploaded,
     }));
 
     return res.status(200).json(formattedUsers);
@@ -95,7 +96,7 @@ const downloadTemplate = async (req, res) => {
 // upload the User with the csv file
 const uploadUsers = async (req, res) => {
   try {
-    const file = req.files.csv;
+    const file = req.files.file;
 
     if (!file || file.mimetype !== 'text/csv') {
       return res.status(400).json({ message: 'No file uploaded.' });

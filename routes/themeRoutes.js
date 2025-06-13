@@ -27,18 +27,13 @@ const {
 } = require('../controllers/themeController');
 const isUserMiddleware = require('../middleware/isUserMiddleware');
 const isAdminOrUserMiddleware = require('../middleware/isAdminOrUserMiddleware');
-
-// ✅ Middleware
-router.use(fileUpload());
+const handleFileMulter = require('../middleware/handleFileMulter');
 
 // ✅ Debugging wrapper
 router.post(
   '/direct-upload',
-  (req, res, next) => {
-    console.log('📨 Hit /direct-upload route');
-    next();
-  },
   isAdminOrUserMiddleware,
+  handleFileMulter,
   directUpload
 );
 

@@ -46,11 +46,32 @@ exports.getAvgVotesPerUser = async (req, res) => {
   try {
     for (const [interval, filter] of Object.entries(dateFilters)) {
       // Total votes in interval
-      const totalVotes = await Vote.count({ where: { ...filter } });
+      const totalVotes = await Vote.count({
+        where: { ...filter },
+        include: [
+          {
+            model: User,
+            as: 'User',
+            where: {
+              is_uploaded: false,
+            },
+            attributes: [], // exclude User fields from result
+          },
+        ],
+      });
 
       // Unique users who cast votes in that interval
       const uniqueVoters = await Vote.count({
         where: { ...filter },
+        include: [
+          {
+            model: User,
+            where: {
+              is_uploaded: false,
+            },
+            attributes: [], // exclude User fields from result
+          },
+        ],
         distinct: true,
         col: 'voter_id',
       });
@@ -82,6 +103,7 @@ exports.getVotingUserPercentage = async (req, res) => {
       where: {
         role: 'participant', // or any roles you want to include
         suspended: false,
+        is_uploaded: false,
       },
     });
 
@@ -89,6 +111,16 @@ exports.getVotingUserPercentage = async (req, res) => {
       // Count distinct voters in that interval
       const voters = await Vote.count({
         where: { ...filter },
+        include: [
+          {
+            model: User,
+            as: 'User',
+            where: {
+              is_uploaded: false,
+            },
+            attributes: [], // exclude User fields from result
+          },
+        ],
         distinct: true,
         col: 'voter_id',
       });
@@ -119,6 +151,7 @@ exports.getCurrentCompetingUsers = async (req, res) => {
       where: {
         role: 'participant',
         suspended: false,
+        is_uploaded: false,
       },
     });
 
@@ -146,6 +179,21 @@ exports.getCurrentCompetingUsers = async (req, res) => {
       where: {
         contest_id: { [Op.in]: contestIds },
       },
+      include: [
+        {
+          model: User,
+          as: 'User1',
+          where: { is_uploaded: false },
+          attributes: [],
+        },
+        {
+          model: User,
+          as: 'User2',
+          where: { is_uploaded: false },
+          attributes: [],
+          required: false, // optional if user2 is nullable
+        },
+      ],
     });
 
     const uniqueUserIds = new Set();
@@ -178,6 +226,7 @@ exports.getVotingAndCompetingStats = async (req, res) => {
       where: {
         role: 'participant',
         suspended: false,
+        is_uploaded: false,
       },
       attributes: ['id'],
       raw: true,
@@ -187,6 +236,13 @@ exports.getVotingAndCompetingStats = async (req, res) => {
     // 🔹 Users who have voted
     const votedUsers = await Vote.findAll({
       attributes: ['voter_id'],
+      include: [
+        {
+          model: User,
+          where: { is_uploaded: false },
+          attributes: [],
+        },
+      ],
       group: ['voter_id'],
       raw: true,
     });
@@ -195,6 +251,21 @@ exports.getVotingAndCompetingStats = async (req, res) => {
     // 🔹 Users who have competed (all-time)
     const allCompetitions = await Competition.findAll({
       attributes: ['user1_id', 'user2_id'],
+      include: [
+        {
+          model: User,
+          as: 'User1',
+          where: { is_uploaded: false },
+          attributes: [],
+        },
+        {
+          model: User,
+          as: 'User2',
+          where: { is_uploaded: false },
+          attributes: [],
+          required: false, // optional if user2 is nullable
+        },
+      ],
       raw: true,
     });
 
@@ -206,12 +277,27 @@ exports.getVotingAndCompetingStats = async (req, res) => {
 
     // 🔹 Users who are currently competing (Live or Upcoming)
     const activeCompetitions = await Competition.findAll({
-      include: {
-        model: Contest,
-        where: {
-          status: { [Op.in]: ['Live', 'Upcoming'] },
+      include: [
+        {
+          model: Contest,
+          where: {
+            status: { [Op.in]: ['Live', 'Upcoming'] },
+          },
         },
-      },
+        {
+          model: User,
+          as: 'User1',
+          where: { is_uploaded: false },
+          attributes: [],
+        },
+        {
+          model: User,
+          as: 'User2',
+          where: { is_uploaded: false },
+          attributes: [],
+          required: false, // optional if user2 is nullable
+        },
+      ],
       attributes: ['user1_id', 'user2_id'],
       raw: true,
     });
@@ -261,17 +347,42 @@ exports.getVotingAndCompetingStats = async (req, res) => {
 exports.getVoterToCompetitorRatio = async (req, res) => {
   try {
     const totalUsers = await User.count({
-      where: { role: 'participant', suspended: false },
+      where: { role: 'participant', suspended: false, is_uploaded: false },
     });
 
     // All-time unique voters
-    const allTimeVoters = await Vote.aggregate('voter_id', 'count', {
+    const allTimeVoters = await Vote.count({
+      include: [
+        {
+          model: User,
+          where: {
+            is_uploaded: false,
+          },
+          attributes: [],
+        },
+      ],
       distinct: true,
+      col: 'voter_id',
     });
 
     // All-time unique competitors
     const allTimeCompetitorsRaw = await Competition.findAll({
       attributes: ['user1_id', 'user2_id'],
+      include: [
+        {
+          model: User,
+          as: 'User1',
+          where: { is_uploaded: false },
+          attributes: [],
+        },
+        {
+          model: User,
+          as: 'User2',
+          where: { is_uploaded: false },
+          attributes: [],
+          required: false, // optional if user2 is nullable
+        },
+      ],
     });
 
     const allTimeCompetitorIds = new Set();
@@ -301,6 +412,21 @@ exports.getVoterToCompetitorRatio = async (req, res) => {
         contest_id: { [Op.in]: activeContestIds },
       },
       attributes: ['user1_id', 'user2_id'],
+      include: [
+        {
+          model: User,
+          as: 'User1',
+          where: { is_uploaded: false },
+          attributes: [],
+        },
+        {
+          model: User,
+          as: 'User2',
+          where: { is_uploaded: false },
+          attributes: [],
+          required: false, // optional if user2 is nullable
+        },
+      ],
     });
 
     const currentCompetitorIds = new Set();
@@ -318,6 +444,15 @@ exports.getVoterToCompetitorRatio = async (req, res) => {
           [Op.gte]: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
         }, // last 7 days
       },
+      include: [
+        {
+          model: User,
+          where: {
+            is_uploaded: false,
+          },
+          attributes: [],
+        },
+      ],
       distinct: true,
       col: 'voter_id',
     });
@@ -364,6 +499,7 @@ exports.getRetentionStats = async (req, res) => {
         where: {
           role: 'participant',
           suspended: false,
+          is_uploaded: false,
           createdAt: {
             [Op.gte]: signupStart,
             [Op.lt]: today, // exclude today
@@ -389,6 +525,15 @@ exports.getRetentionStats = async (req, res) => {
           voter_id: { [Op.in]: userIds },
           createdAt: { [Op.gte]: signupStart }, // since signup
         },
+        include: [
+          {
+            model: User,
+            where: {
+              is_uploaded: false,
+            },
+            attributes: [],
+          },
+        ],
         attributes: ['voter_id'],
         group: ['voter_id'],
       });
@@ -401,6 +546,21 @@ exports.getRetentionStats = async (req, res) => {
           ],
           createdAt: { [Op.gte]: signupStart }, // since signup
         },
+        include: [
+          {
+            model: User,
+            as: 'User1',
+            where: { is_uploaded: false },
+            attributes: [],
+          },
+          {
+            model: User,
+            as: 'User2',
+            where: { is_uploaded: false },
+            attributes: [],
+            required: false, // optional if user2 is nullable
+          },
+        ],
         attributes: ['user1_id', 'user2_id'],
       });
 
@@ -443,6 +603,7 @@ exports.getGlobalRetentionStats = async (req, res) => {
       where: {
         role: 'participant',
         suspended: false,
+        is_uploaded: false,
       },
       attributes: ['id'],
     });
@@ -474,6 +635,15 @@ exports.getGlobalRetentionStats = async (req, res) => {
             [Op.lt]: activityEnd,
           },
         },
+        include: [
+          {
+            model: User,
+            where: {
+              is_uploaded: false,
+            },
+            attributes: [],
+          },
+        ],
         attributes: ['voter_id'],
         group: ['voter_id'],
       });
@@ -489,6 +659,21 @@ exports.getGlobalRetentionStats = async (req, res) => {
             { user2_id: { [Op.in]: userIds } },
           ],
         },
+        include: [
+          {
+            model: User,
+            as: 'User1',
+            where: { is_uploaded: false },
+            attributes: [],
+          },
+          {
+            model: User,
+            as: 'User2',
+            where: { is_uploaded: false },
+            attributes: [],
+            required: false, // optional if user2 is nullable
+          },
+        ],
         attributes: ['user1_id', 'user2_id'],
       });
 
