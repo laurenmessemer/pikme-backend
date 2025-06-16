@@ -1,7 +1,7 @@
 const { Vote, WeeklyVoterStats } = require('../models');
 const { Sequelize } = require('sequelize');
 const moment = require('moment');
-
+const { User } = require('../models');
 exports.recordWeeklyVoterStats = async () => {
   // Get current date
   const today = moment();
@@ -28,7 +28,7 @@ exports.recordWeeklyVoterStats = async () => {
     const voters = await Vote.findAll({
       attributes: [
         'voter_id',
-        [Sequelize.fn('MIN', Sequelize.col('createdAt')), 'first_vote'],
+        [Sequelize.fn('MIN', Sequelize.col('Vote.createdAt')), 'first_vote'],
       ],
       include: [
         {
