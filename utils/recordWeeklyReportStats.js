@@ -12,7 +12,7 @@ exports.recordWeeklyReportStats = async () => {
     .startOf('isoWeek')
     .subtract(1, 'week')
     .startOf('day')
-    .toDate();
+    .format('YYYY-MM-DD HH:mm:ss');
 
   // Get the previous week's Sunday 23:59:59
   const lastWeekEnd = today
@@ -20,7 +20,7 @@ exports.recordWeeklyReportStats = async () => {
     .startOf('isoWeek')
     .subtract(1, 'day')
     .endOf('day')
-    .toDate();
+    .format('YYYY-MM-DD HH:mm:ss');
 
   // return true;
   try {
@@ -60,7 +60,7 @@ exports.recordWeeklyReportStats = async () => {
 
     // Insert or update the weekly stats record
     await WeeklyReportStats.upsert({
-      weekStart: lastWeekStart.toISOString().slice(0, 10),
+      weekStart: lastWeekStart.slice(0, 10),
       reportCount: reportCount,
       totalImagesCount: Number(results[0].total_count),
     });
