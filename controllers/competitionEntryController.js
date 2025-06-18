@@ -4,6 +4,7 @@ const {
   Wallet,
   User,
   PendingCompetition,
+  Theme,
 } = require('../models');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
@@ -646,6 +647,52 @@ const emailInviteLink = async (req, res) => {
   }
 };
 
+const getCompetitionById = async (req, res) => {
+  try {
+    const { competitionId } = req.query;
+
+    const competition = await Competition.findOne({
+      where: { id: competitionId },
+      include: [
+        {
+          model: Contest,
+          attributes: [
+            'id',
+            'status',
+            'entry_fee',
+            'theme_id',
+            'winnings',
+            'contest_live_date',
+            'submission_deadline',
+            'voting_live_date',
+            'voting_deadline',
+          ],
+          include: [
+            {
+              model: Theme,
+              as: 'Theme',
+              attributes: ['id', 'name', 'cover_image_url'],
+            },
+          ],
+        },
+        { model: User, as: 'User1', attributes: ['id', 'username', 'email'] },
+        { model: User, as: 'User2', attributes: ['id', 'username', 'email'] },
+      ],
+    });
+
+    if (!competition) {
+      return res.status(404).json({ error: 'Competition not found.' });
+    }
+
+    res.status(200).json({
+      competition,
+    });
+  } catch (error) {
+    console.error('❌ Error fetching competition:', error);
+    res.status(500).json({ error: 'Error fetching competition.' });
+  }
+};
+
 // ✅ Ensure all functions are correctly exported
 module.exports = {
   getUploadURL,
@@ -659,4 +706,5 @@ module.exports = {
   acceptInvite,
   emailInviteLink,
   validateInviteCode,
+  getCompetitionById,
 };
