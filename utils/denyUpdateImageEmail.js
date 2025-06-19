@@ -2,13 +2,10 @@ const mailchimp = require('@mailchimp/mailchimp_transactional')(
   process.env.MAILCHIMP_TRANSACTIONAL_KEY
 );
 
-<<<<<<< HEAD
-=======
 /**
  * send the Email on the Admin Deny the preplaced the violation image
  * @author Dhrumil Amrutiya (Zignuts)
  */
->>>>>>> 42d08cd414e6704fbdfe8488d52381be928fa917
 const denyUpdateImageEmail = async (
   email,
   username,
@@ -50,10 +47,6 @@ const denyUpdateImageEmail = async (
         ],
       },
     });
-<<<<<<< HEAD
-    console.dir(response, { depth: null });
-=======
->>>>>>> 42d08cd414e6704fbdfe8488d52381be928fa917
   } catch (error) {
     console.error('❌ Error determining winners:', error);
     return {

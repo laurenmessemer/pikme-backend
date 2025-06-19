@@ -2,13 +2,10 @@ const mailchimp = require('@mailchimp/mailchimp_transactional')(
   process.env.MAILCHIMP_TRANSACTIONAL_KEY
 );
 
-<<<<<<< HEAD
-=======
 /**
  * Send the email to the reported user for the violation
  * @author Dhrumil Amrutiya (Zignuts)
  */
->>>>>>> 42d08cd414e6704fbdfe8488d52381be928fa917
 const sendUpdateImageEmail = async (
   email,
   username,
@@ -50,10 +47,6 @@ const sendUpdateImageEmail = async (
         ],
       },
     });
-<<<<<<< HEAD
-    console.dir(response, { depth: null });
-=======
->>>>>>> 42d08cd414e6704fbdfe8488d52381be928fa917
   } catch (error) {
     console.log('error: ', error);
     console.error('❌ Error determining winners:', error);

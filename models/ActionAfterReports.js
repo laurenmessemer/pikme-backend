@@ -27,8 +27,13 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.ENUM(
           'User Action Pending',
           'Admin Review Pending',
-          'Complete'
+          'Resolved',
+          'Resolved By Admin'
         ),
+      },
+      mail_send_time: {
+        type: DataTypes.DATE,
+        allowNull: true,
       },
     },
     {

@@ -191,3 +191,7 @@ ALTER TABLE IF EXISTS public."ActionAfterReports"
 
 ALTER TABLE IF EXISTS public."ActionAfterReports"
     ALTER COLUMN new_image_url DROP NOT NULL;
+
+--Stage 6
+ALTER TABLE IF EXISTS public."ActionAfterReports"
+    ADD COLUMN mail_send_time timestamp with time zone DEFAULT NOW();
