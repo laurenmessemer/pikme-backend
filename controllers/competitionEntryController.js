@@ -5,6 +5,7 @@ const {
   User,
   PendingCompetition,
   Theme,
+  ActionAfterReports,
 } = require('../models');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
@@ -13,6 +14,7 @@ const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 const sendInviteEmail = require('../utils/sendInviteEmail');
 const addAlerts = require('../utils/addAlerts');
+const deleteImageFromS3 = require('../utils/deleteImageFromS3');
 
 // ✅ Load environment variables from .env file
 dotenv.config();
@@ -60,6 +62,30 @@ const getUploadURL = async (req, res) => {
       uploadURL,
       fileKey,
       pendingEntryId: pendingEntry.id,
+    });
+  } catch (error) {
+    console.error('❌ Error generating upload URL:', error);
+    res
+      .status(500)
+      .json({ message: 'Error generating upload URL', error: error.message });
+  }
+};
+
+// ✅ Delete the Image from the S3 bucket
+const deleteImageS3URL = async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+
+    const response = await deleteImageFromS3(imageUrl);
+
+    if (response.isError) {
+      return res.status(200).json({
+        message: 'Server error while deleting the Image',
+        error: error,
+      });
+    }
+    return res.status(200).json({
+      message: 'Image deleted Successfully',
     });
   } catch (error) {
     console.error('❌ Error generating upload URL:', error);
@@ -693,8 +719,42 @@ const getCompetitionById = async (req, res) => {
       return res.status(404).json({ error: 'Competition not found.' });
     }
 
+    let userId = '';
+    if (competition.user1_flagged && competition.user1_id === req.user.id) {
+      userId = competition.user1_id;
+    } else if (
+      competition.user2_flagged &&
+      competition.user2_id === req.user.id
+    ) {
+      userId = competition.user2_id;
+    } else {
+      return res
+        .status(404)
+        .json({ error: 'Could not finnd the vioalted Image' });
+    }
+
+    // add the validation
+    const findViolationStatus = await ActionAfterReports.findOne({
+      where: {
+        competition_id: competition.id,
+        reported_user_id: userId,
+        status: 'User Action Pending',
+        mail_send_time: {
+          [Op.gt]: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24 seconds ago
+        },
+      },
+    });
+
+    if (!findViolationStatus) {
+      return res.status(200).json({
+        isExpired: true,
+        error: 'The provided link is no longer valid.',
+      });
+    }
+
     res.status(200).json({
       competition,
+      violationObj: findViolationStatus,
     });
   } catch (error) {
     console.error('❌ Error fetching competition:', error);
@@ -705,6 +765,7 @@ const getCompetitionById = async (req, res) => {
 // ✅ Ensure all functions are correctly exported
 module.exports = {
   getUploadURL,
+  deleteImageS3URL,
   updateImage,
   uploadImage,
   confirmPayment,

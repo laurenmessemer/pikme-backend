@@ -10,6 +10,7 @@ const {
 } = require('../models');
 const sendUpdateImageEmail = require('../utils/sendUpdateImageEmail');
 const denyUpdateImageEmail = require('../utils/denyUpdateImageEmail');
+const deleteImageFromS3 = require('../utils/deleteImageFromS3');
 
 exports.submitReport = async (req, res) => {
   const { reporterId, competitionId, imageUrl, categories, description } =
@@ -644,17 +645,27 @@ exports.updateViolationImages = async (req, res) => {
       },
     });
 
-    if (findViolationAction.status === 'Complete') {
+    if (
+      findViolationAction.status === 'Resolved' ||
+      findViolationAction.status === 'Resolved By Admin'
+    ) {
       return res.status(400).json({
         message: 'Violation Action was Completed',
       });
+    }
+
+    // If User already uploaded the image and it was denied from the admin and user tries to re-upload then remove the old one.
+    if (findViolationAction.new_image_url) {
+      await deleteImageFromS3(findViolationAction.new_image_url);
     }
 
     const [count, updateReportAction] = await ActionAfterReports.update(
       {
         new_image_url: newImageUrl,
         status:
-          req.user.role === 'participant' ? 'Admin Review Pending' : 'Complete',
+          req.user.role === 'participant'
+            ? 'Admin Review Pending'
+            : 'Resolved By Admin',
       },
       {
         where: {
@@ -665,7 +676,10 @@ exports.updateViolationImages = async (req, res) => {
       }
     );
 
-    if (updateReportAction[0]?.status === 'Complete') {
+    if (
+      updateReportAction[0]?.status === 'Resolved' ||
+      updateReportAction[0]?.status === 'Resolved By Admin'
+    ) {
       if (user === 'user1') {
         competition.user1_flagged = false;
         competition.user1_image = newImageUrl;
@@ -741,7 +755,7 @@ exports.updateViolationImagesStaus = async (req, res) => {
 
     await ActionAfterReports.update(
       {
-        status: isApprove ? 'Complete' : 'User Action Pending',
+        status: isApprove ? 'Resolved' : 'User Action Pending',
       },
       {
         where: {
@@ -775,6 +789,17 @@ exports.updateViolationImagesStaus = async (req, res) => {
       }
 
       const findUser = await User.findOne({ where: { id: userId } });
+
+      await ActionAfterReports.update(
+        {
+          mail_send_time: new Date(),
+        },
+        {
+          where: {
+            id: violationActionId,
+          },
+        }
+      );
       await denyUpdateImageEmail(
         findUser.email,
         findUser.username,

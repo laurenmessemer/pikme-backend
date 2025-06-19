@@ -29,8 +29,8 @@ exports.directUpload = async (req, res) => {
     if (type === 'update') {
       key = `uploads/${Date.now()}${
         req.user.role === 'participant'
-          ? '-' + user_id
-          : '-' + user_id + 'admin'
+          ? '-' + req.user.id
+          : '-' + req.user.id + '-' + 'admin'
       }${extension}`;
     } else {
       key = `themes/${uuidv1()}${extension}`;
