@@ -43,7 +43,6 @@ const sendUpdateImageEmail = async (
         ],
       },
     });
-    console.dir(response, { depth: null });
   } catch (error) {
     console.log('error: ', error);
     console.error('❌ Error determining winners:', error);

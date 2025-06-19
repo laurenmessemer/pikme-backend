@@ -43,7 +43,6 @@ const denyUpdateImageEmail = async (
         ],
       },
     });
-    console.dir(response, { depth: null });
   } catch (error) {
     console.error('❌ Error determining winners:', error);
     return {
