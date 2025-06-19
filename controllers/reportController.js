@@ -6,7 +6,10 @@ const {
   Contest,
   Theme,
   sequelize,
+  ActionAfterReports,
 } = require('../models');
+const sendUpdateImageEmail = require('../utils/sendUpdateImageEmail');
+const denyUpdateImageEmail = require('../utils/denyUpdateImageEmail');
 
 exports.submitReport = async (req, res) => {
   const { reporterId, competitionId, imageUrl, categories, description } =
@@ -41,14 +44,6 @@ exports.submitReport = async (req, res) => {
       description,
     });
 
-    // ✅ Optional: flag image in the competition
-    if (imageUrl === competition.user1_image) {
-      competition.user1_flagged = true;
-    } else {
-      competition.user2_flagged = true;
-    }
-    await competition.save();
-
     res.status(201).json({ message: 'Report submitted', report });
   } catch (err) {
     console.error('❌ Error submitting report:', err);
@@ -61,107 +56,62 @@ exports.submitReport = async (req, res) => {
 exports.getReports = async (req, res) => {
   const { status = 'All', skip = 0, limit = 10 } = req.query;
 
-  let whereClause = {};
+  let whereClause = '';
   if (status !== 'All') {
-    whereClause = {
-      status: status,
-    };
+    whereClause = `WHERE COALESCE(A."status", R."status") = '${status}'`;
   }
   try {
-    const allReportsCount = await Report.count({
-      include: [
-        {
-          model: User,
-          as: 'Reporter',
-          attributes: ['id', 'username', 'email'],
-        },
-        {
-          model: User,
-          as: 'ReportedUser',
-          attributes: ['id', 'username', 'email'],
-        },
-        {
-          model: Competition,
-          attributes: [
-            'id',
-            'contest_id',
-            'user1_id',
-            'user2_id',
-            'user1_image',
-            'user2_image',
-            'match_type',
-            'status',
-          ],
-          include: [
-            {
-              model: Contest,
-              // as: 'Theme',
-              attributes: ['id'],
-              include: [
-                {
-                  model: Theme,
-                  as: 'Theme',
-                  attributes: ['id', 'name', 'cover_image_url'],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-      where: whereClause,
-      order: [['createdAt', 'DESC']],
+    let queryString = `
+    SELECT
+      COALESCE(A."status", R."status") as "final_status",
+      A."updatedAt" as "violation_action_time",
+      R.*,
+      U1."id" AS "reporter_user_id",
+      U1."username" AS "reporter_user_username",
+      U1."email" AS "reporter_user_email",
+      U2."id" AS "reported_user_id",
+      U2."username" AS "reported_user_username",
+      U2."email" AS "reported_user_email",
+      C."id" AS "competition_id",
+      C."contest_id" AS "competition_contest_id",
+      C."user1_id" AS "competition_user1_id",
+      C."user2_id" AS "competition_user2_id",
+      C."user1_image" AS "competition_user1_image",
+      C."user2_image" AS "competition_user2_image",
+      C."match_type" AS "competition_match_type",
+      C."status" AS "competition_status",
+      T."id" AS "theme_id",
+      T."name" AS "theme_name",
+      T."cover_image_url" AS "theme_cover_image_url"
+    FROM
+      "Reports" R
+      JOIN "Users" U1 ON U1."id" = R."reporter_id"
+      JOIN "Users" U2 ON U2."id" = R."reported_user_id"
+      JOIN "Competitions" C ON C."id" = R."competition_id"
+      JOIN "Contests" CT ON CT."id" = C."contest_id"
+      JOIN "Themes" T ON T."id" = CT."theme_id"
+      LEFT JOIN "ActionAfterReports" AS A ON A."competition_id" = R."competition_id"
+      AND R."image_url" = A."old_image_url"
+     ${whereClause}
+     ORDER BY R."createdAt" DESC
+    `;
+
+    const resultCount = await sequelize.query(queryString, {
+      type: sequelize.QueryTypes.SELECT,
     });
 
-    const allReports = await Report.findAll({
-      include: [
-        {
-          model: User,
-          as: 'Reporter',
-          attributes: ['id', 'username', 'email'],
-        },
-        {
-          model: User,
-          as: 'ReportedUser',
-          attributes: ['id', 'username', 'email'],
-        },
-        {
-          model: Competition,
-          attributes: [
-            'id',
-            'contest_id',
-            'user1_id',
-            'user2_id',
-            'user1_image',
-            'user2_image',
-            'match_type',
-            'status',
-          ],
-          include: [
-            {
-              model: Contest,
-              // as: 'Theme',
-              attributes: ['id'],
-              include: [
-                {
-                  model: Theme,
-                  as: 'Theme',
-                  attributes: ['id', 'name', 'cover_image_url'],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-      where: whereClause,
-      order: [['createdAt', 'DESC']],
-      limit: Number(limit),
-      offset: Number(skip),
+    if (limit >= 0 && skip >= 0) {
+      queryString += ` LIMIT ${limit} OFFSET ${skip}`;
+    }
+
+    const result = await sequelize.query(queryString, {
+      type: sequelize.QueryTypes.SELECT,
     });
 
     return res.status(200).json({
       message: 'Report list',
-      reportCount: allReportsCount,
-      report: allReports,
+      reportCount: resultCount.length,
+      report: result,
     });
   } catch (err) {
     console.error('❌ Error submitting report:', err);
@@ -195,6 +145,8 @@ exports.getReportsById = async (req, res) => {
             'user2_id',
             'user1_image',
             'user2_image',
+            'user1_flagged',
+            'user2_flagged',
             'match_type',
             'status',
           ],
@@ -217,7 +169,21 @@ exports.getReportsById = async (req, res) => {
       where: { id: reportId },
     });
 
-    return res.status(200).json({ message: 'Report list', report: allReports });
+    const findActionStatus = await ActionAfterReports.findOne({
+      where: {
+        competition_id: allReports.competition_id,
+        reported_user_id: allReports.reported_user_id,
+        old_image_url: allReports.image_url,
+      },
+    });
+
+    return res.status(200).json({
+      message: 'Report list',
+      report: {
+        ...allReports?.toJSON(),
+        ViolationAction: findActionStatus?.toJSON() || {},
+      },
+    });
   } catch (err) {
     console.error('❌ Error submitting report:', err);
     res
@@ -240,9 +206,92 @@ exports.updateReportStatus = async (req, res) => {
       return res.status(400).json({ message: 'User not found' });
     }
 
-    findReport.status = status;
+    if (status === 'Violation') {
+      const findUser = await User.findOne({
+        where: { id: findReport.reported_user_id },
+        attributes: ['id', 'username', 'email'],
+      });
 
-    await findReport.save();
+      const createAction = await ActionAfterReports.create({
+        reported_user_id: findReport.reported_user_id,
+        competition_id: findReport.competition_id,
+        old_image_url: findReport.image_url,
+        status: 'User Action Pending',
+      });
+
+      const findTheme = await Competition.findOne({
+        where: {
+          id: findReport.competition_id,
+        },
+        include: [
+          {
+            model: Contest,
+            attributes: ['id'],
+            include: [
+              {
+                model: Theme,
+                as: 'Theme',
+                attributes: ['id', 'name', 'cover_image_url'],
+              },
+            ],
+          },
+        ],
+      });
+
+      if (findTheme.user1_id === findReport.reported_user_id) {
+        findTheme.user1_flagged = true;
+      } else {
+        findTheme.user2_flagged = true;
+      }
+
+      await findTheme.save();
+
+      await sendUpdateImageEmail(
+        findUser.email,
+        findUser.username,
+        findReport.competition_id,
+        findTheme.Contest.Theme.name
+      );
+    }
+
+    await Report.update(
+      { status: status },
+      {
+        where: {
+          competition_id: findReport.competition_id,
+          image_url: findReport.image_url,
+        },
+      }
+    );
+
+    if (status === 'No Violation') {
+      const findViolationAction = await ActionAfterReports.findOne({
+        where: {
+          competition_id: findReport.competition_id,
+          old_image_url: findReport.image_url,
+          reported_user_id: findReport.reported_user_id,
+        },
+      });
+
+      if (findViolationAction) {
+        const findCompetition = await Competition.findOne({
+          where: {
+            id: findReport.competition_id,
+          },
+        });
+
+        if (
+          findCompetition.user1_flagged &&
+          findCompetition.user1_id === findReport.reported_user_id
+        ) {
+          findCompetition.user1_flagged = false;
+        } else {
+          findCompetition.user2_flagged = false;
+        }
+        findCompetition.save();
+        await findViolationAction.destroy();
+      }
+    }
 
     return res.status(200).json({ message: 'Report list', report: findReport });
   } catch (err) {
@@ -459,5 +508,208 @@ exports.actionOnReportedUser = async (req, res) => {
     return res
       .status(500)
       .json({ message: 'Internal server error', error: err.message });
+  }
+};
+
+// Admin or User can upload the violated image
+exports.updateViolationImages = async (req, res) => {
+  try {
+    const { competitionId, newImageUrl, reportedUserId } = req.body;
+
+    if (!competitionId || !newImageUrl) {
+      return res.status(400).json({
+        message: 'competitionId and newImageUrl are required.',
+      });
+    }
+
+    const competition = await Competition.findOne({
+      where: { id: competitionId },
+    });
+
+    if (!competition) {
+      return res.status(404).json({ message: 'Competition not found.' });
+    }
+
+    let violatedImageUrl = null;
+    let user = '';
+
+    if (req.user.role === 'participant') {
+      if (competition.user1_flagged && competition.user1_id === req.user.id) {
+        violatedImageUrl = competition.user1_image;
+        user = 'user1';
+      } else if (
+        competition.user2_flagged &&
+        competition.user2_id === req.user.id
+      ) {
+        violatedImageUrl = competition.user2_image;
+        user = 'user2';
+      }
+    } else {
+      if (
+        competition.user1_flagged &&
+        competition.user1_id === reportedUserId
+      ) {
+        violatedImageUrl = competition.user1_image;
+        user = 'user1';
+      } else if (
+        competition.user2_flagged &&
+        competition.user2_id === reportedUserId
+      ) {
+        violatedImageUrl = competition.user2_image;
+        user = 'user2';
+      }
+    }
+
+    if (!violatedImageUrl) {
+      return res.status(400).json({
+        message: 'Can not find the Violated Image',
+      });
+    }
+
+    const findViolationAction = await ActionAfterReports.findOne({
+      where: {
+        competition_id: competition.id,
+        old_image_url: violatedImageUrl,
+      },
+    });
+
+    if (findViolationAction.status === 'Complete') {
+      return res.status(400).json({
+        message: 'Violation Action was Completed',
+      });
+    }
+
+    const [count, updateReportAction] = await ActionAfterReports.update(
+      {
+        new_image_url: newImageUrl,
+        status:
+          req.user.role === 'participant' ? 'Admin Review Pending' : 'Complete',
+      },
+      {
+        where: {
+          competition_id: competition.id,
+          old_image_url: violatedImageUrl,
+        },
+        returning: true,
+      }
+    );
+
+    if (updateReportAction[0]?.status === 'Complete') {
+      if (user === 'user1') {
+        competition.user1_flagged = false;
+        competition.user1_image = newImageUrl;
+      } else {
+        competition.user2_flagged = false;
+        competition.user2_image = newImageUrl;
+      }
+
+      await competition.save();
+    }
+
+    res.status(200).json({
+      message: 'Violation image updated successfully.',
+      competition,
+    });
+  } catch (error) {
+    console.error('❌ Error updating violation image:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
+
+// Admin or User can upload the violated image
+exports.updateViolationImagesStaus = async (req, res) => {
+  try {
+    const { violationActionId, isApprove = false } = req.body;
+
+    const findReportAction = await ActionAfterReports.findOne({
+      where: {
+        id: violationActionId,
+      },
+      include: [
+        {
+          model: Competition,
+          attributes: ['id'],
+        },
+      ],
+    });
+
+    if (!findReportAction) {
+      return res.status(400).json({
+        message: 'Report not found',
+      });
+    }
+
+    const competition = await Competition.findOne({
+      where: { id: findReportAction.Competition.id },
+      include: [
+        {
+          model: Contest,
+          attributes: ['id'],
+          include: [
+            {
+              model: Theme,
+              as: 'Theme',
+              attributes: ['id', 'name', 'cover_image_url'],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!competition) {
+      return res.status(404).json({ message: 'Competition not found.' });
+    }
+
+    await ActionAfterReports.update(
+      {
+        status: isApprove ? 'Complete' : 'User Action Pending',
+      },
+      {
+        where: {
+          id: violationActionId,
+        },
+      }
+    );
+
+    if (isApprove === true || isApprove === 'true') {
+      if (
+        competition.user1_flagged &&
+        competition.user1_image === findReportAction.old_image_url
+      ) {
+        competition.user1_flagged = false;
+        competition.user1_image = findReportAction.new_image_url;
+      } else {
+        competition.user2_flagged = false;
+        competition.user2_image = findReportAction.new_image_url;
+      }
+
+      await competition.save();
+    } else {
+      let userId;
+      if (
+        competition.user1_flagged &&
+        competition.user1_image === findReportAction.old_image_url
+      ) {
+        userId = competition.user1_id;
+      } else {
+        userId = competition.user2_id;
+      }
+
+      const findUser = await User.findOne({ where: { id: userId } });
+      await denyUpdateImageEmail(
+        findUser.email,
+        findUser.username,
+        competition.id,
+        competition.Contest.Theme.name
+      );
+    }
+
+    return res.status(200).json({
+      message: 'Violation image updated successfully.',
+      competition,
+    });
+  } catch (error) {
+    console.error('❌ Error updating violation image:', error);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 };

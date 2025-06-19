@@ -19,9 +19,22 @@ exports.directUpload = async (req, res) => {
       return res.status(400).json({ message: 'No image provided.' });
     }
 
+    const { type = 'theme' } = req.body;
+
     const file = req.files.file;
     const extension = path.extname(file.name);
-    const key = `themes/${uuidv1()}${extension}`;
+
+    let key;
+    // manage for the update image for policy violation for user and admin both
+    if (type === 'update') {
+      key = `uploads/${Date.now()}${
+        req.user.role === 'participant'
+          ? '-' + user_id
+          : '-' + user_id + 'admin'
+      }${extension}`;
+    } else {
+      key = `themes/${uuidv1()}${extension}`;
+    }
 
     const params = {
       Bucket: process.env.S3_BUCKET_NAME,

@@ -84,4 +84,11 @@ router.post(
   CompetitionEntryController.emailInviteLink
 );
 
+// ✅ Send Invite Email
+router.get(
+  '/get-competition',
+  isUserMiddleware,
+  CompetitionEntryController.getCompetitionById
+);
+
 module.exports = router;

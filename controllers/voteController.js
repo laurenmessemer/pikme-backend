@@ -50,6 +50,8 @@ exports.getVotingEntries = async (req, res) => {
       user2_image: comp.user2_image,
       votes_user1: comp.votes_user1, // ✅ add this
       votes_user2: comp.votes_user2, // ✅ add this
+      user1_flagged: comp.user1_flagged, // ✅ add this
+      user2_flagged: comp.user2_flagged, // ✅ add this
       contestId: comp.Contest.id,
       entry_fee: comp.Contest.entry_fee,
       prize_pool: parseFloat(comp.Contest.prize_pool),

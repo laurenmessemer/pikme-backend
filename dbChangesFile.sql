@@ -153,3 +153,41 @@ CREATE TABLE IF NOT EXISTS public."WeeklyReportStats"
 --Stage 4
 ALTER TABLE IF EXISTS public."Users"
     ADD COLUMN is_uploaded BOOLEAN DEFAULT FALSE;
+
+
+-- Stage 5
+CREATE SEQUENCE IF NOT EXISTS public."ActionAfterReports_id_seq"
+    INCREMENT 1
+    START 1
+    MINVALUE 1
+    MAXVALUE 2147483647
+    CACHE 1;
+
+CREATE TABLE IF NOT EXISTS public."ActionAfterReports"
+(
+    id integer NOT NULL DEFAULT nextval('"ActionAfterReports_id_seq"'::regclass),
+    reported_user_id integer NOT NULL,
+    competition_id integer NOT NULL,
+    new_image_url text COLLATE pg_catalog."default" NOT NULL,
+    status text COLLATE pg_catalog."default" DEFAULT 'New'::text,
+    "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ActionAfterReports_pkey" PRIMARY KEY (id),
+    CONSTRAINT fk_competition FOREIGN KEY (competition_id)
+        REFERENCES public."Competitions" (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT fk_reported_user FOREIGN KEY (reported_user_id)
+        REFERENCES public."Users" (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE
+)
+
+ALTER SEQUENCE public."ActionAfterReports_id_seq"
+    OWNED BY public."ActionAfterReports".id;
+
+ALTER TABLE IF EXISTS public."ActionAfterReports"
+    ADD COLUMN old_image_url text;
+
+ALTER TABLE IF EXISTS public."ActionAfterReports"
+    ALTER COLUMN new_image_url DROP NOT NULL;

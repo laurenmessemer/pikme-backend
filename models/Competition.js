@@ -91,6 +91,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
+      user1_flagged: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      user2_flagged: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
     },
     {
       timestamps: true,
