@@ -2,6 +2,10 @@ const mailchimp = require('@mailchimp/mailchimp_transactional')(
   process.env.MAILCHIMP_TRANSACTIONAL_KEY
 );
 
+/**
+ * send the Email on the Admin Deny the preplaced the violation image
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const denyUpdateImageEmail = async (
   email,
   username,

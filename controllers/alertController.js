@@ -1,5 +1,14 @@
 const { Alerts } = require('../models');
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description List all the Alerts
+ * @routes (GET /determine-winners)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const listAllAlerts = async (req, res) => {
   try {
     const getListAlerts = await Alerts.findAll({
@@ -21,6 +30,15 @@ const listAllAlerts = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description Read the Alert
+ * @routes (PUT /:alert_id)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const readAlert = async (req, res) => {
   try {
     const { alert_id } = req.params;
@@ -47,6 +65,15 @@ const readAlert = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description Delete Alert
+ * @routes (DELETE /:alert_id)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const deleteAlert = async (req, res) => {
   try {
     const { alert_id } = req.params;

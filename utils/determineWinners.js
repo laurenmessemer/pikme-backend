@@ -10,6 +10,10 @@ const {
 } = require('../models');
 const addAlerts = require('./addAlerts');
 
+/**
+ * Determine the winner based on the voted add the winning amount in the wallet
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const determineWinnersFunction = async () => {
   try {
     // get required contest data

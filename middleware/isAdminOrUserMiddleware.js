@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
+/**
+ * API validation for the Admin and User Validation
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const isAdminOrUserMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;

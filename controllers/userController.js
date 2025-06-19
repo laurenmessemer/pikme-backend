@@ -302,6 +302,15 @@ const deleteUser = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description Close the user's verify age popUp
+ * @routes (POST /verify-age)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const verifyAge = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id);
@@ -325,6 +334,15 @@ const verifyAge = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description Close the user's warning popUp
+ * @routes (POST /close-warn-popup)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const closeWarnPopUp = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id);

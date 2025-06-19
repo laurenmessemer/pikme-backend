@@ -2,6 +2,10 @@ const mailchimp = require('@mailchimp/mailchimp_transactional')(
   process.env.MAILCHIMP_TRANSACTIONAL_KEY
 );
 
+/**
+ * Send the email to the reported user for the violation
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const sendUpdateImageEmail = async (
   email,
   username,

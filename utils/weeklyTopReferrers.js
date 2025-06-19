@@ -9,6 +9,10 @@ const voterReword = {
   3: 4,
 };
 
+/**
+ * find the weekly top referrers and add the winning amount in their wallet
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 async function weeklyTopReferrers() {
   try {
     const weekStart = moment()

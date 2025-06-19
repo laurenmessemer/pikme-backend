@@ -53,6 +53,15 @@ exports.submitReport = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description List all the reports
+ * @routes (GET /get-reports)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.getReports = async (req, res) => {
   const { status = 'All', skip = 0, limit = 10 } = req.query;
 
@@ -121,6 +130,15 @@ exports.getReports = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description get the report by id with the violation action object
+ * @routes (GET /get-reports/:reportId)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.getReportsById = async (req, res) => {
   const { reportId } = req.params;
   try {
@@ -192,6 +210,15 @@ exports.getReportsById = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description update the report status
+ * @routes (POST /update-report-status)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.updateReportStatus = async (req, res) => {
   try {
     const { reportId, status = 'No Violation' } = req.body;
@@ -302,6 +329,15 @@ exports.updateReportStatus = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description List all the users who got reported and their report count
+ * @routes (GET /get-reported-users)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.getReportedUser = async (req, res) => {
   const { skip = 0, limit = 10 } = req.query;
   try {
@@ -351,6 +387,15 @@ exports.getReportedUser = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description List all the images which are reported and their report count
+ * @routes (GET /get-reported-images)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.getReportedImages = async (req, res) => {
   const { skip = 0, limit = 10 } = req.query;
   try {
@@ -413,6 +458,15 @@ exports.getReportedImages = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description List perticular User's all the reports by Ids
+ * @routes (GET /get-reported-user/:userId)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.getReportedUserById = async (req, res) => {
   const { userId } = req.params;
   try {
@@ -481,6 +535,15 @@ exports.getReportedUserById = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description change the reported user status Ban or Warn
+ * @routes (POST /action-on-reported-user)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.actionOnReportedUser = async (req, res) => {
   try {
     const { userId, status = 'Warn' } = req.body;
@@ -511,7 +574,15 @@ exports.actionOnReportedUser = async (req, res) => {
   }
 };
 
-// Admin or User can upload the violated image
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description Admin replace the vilated image
+ * @routes (POST /update-image)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.updateViolationImages = async (req, res) => {
   try {
     const { competitionId, newImageUrl, reportedUserId } = req.body;
@@ -616,7 +687,15 @@ exports.updateViolationImages = async (req, res) => {
   }
 };
 
-// Admin or User can upload the violated image
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description Admin Approve and Deny the replaced image by User
+ * @routes (POST /update-violation-image-status)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.updateViolationImagesStaus = async (req, res) => {
   try {
     const { violationActionId, isApprove = false } = req.body;
