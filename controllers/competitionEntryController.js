@@ -647,6 +647,15 @@ const emailInviteLink = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description get the competition bu Id
+ * @routes (GET /get-competition)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const getCompetitionById = async (req, res) => {
   try {
     const { competitionId } = req.query;

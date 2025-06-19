@@ -9,6 +9,10 @@ const voterReword = {
   3: 4,
 };
 
+/**
+ * find the weekly top voters and add the winning amount in their wallet
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 async function weeklyTopVoters() {
   try {
     const weekStart = moment()

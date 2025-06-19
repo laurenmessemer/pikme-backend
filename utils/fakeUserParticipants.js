@@ -5,6 +5,10 @@ const { default: axios } = require('axios');
 const shuffleArray = require('./shuffleArray');
 const convertToS3Url = require('./convertToS3Url');
 
+/**
+ * Fake user take the participent in the competition
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const fakeUserParticipants = async (contest, file) => {
   try {
     const readable = Readable.from(file.data);

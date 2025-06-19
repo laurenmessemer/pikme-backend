@@ -25,7 +25,15 @@ const getAllContests = async (req, res) => {
   }
 };
 
-// ✅ Download the sample template
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description download the sample template of CSV
+ * @routes (GET /downlaod-contest-template)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const downlaodContestTemplate = async (req, res) => {
   try {
     const users = await User.findAll({
@@ -61,7 +69,15 @@ const downlaodContestTemplate = async (req, res) => {
   }
 };
 
-// Join the fake participants
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description Join the fake participents and vote the on going competition
+ * @routes (POST /upload-fake-participents)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const uploadFakeParticipants = async (req, res) => {
   try {
     const { constestId } = req.body;

@@ -1,5 +1,9 @@
 const { Alerts } = require('../models');
 
+/**
+ * Add the Alert in the DB
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 async function addAlerts(data) {
   try {
     const { user_id, message, title } = data;

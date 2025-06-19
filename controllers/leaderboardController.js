@@ -398,6 +398,15 @@ exports.getOpponentInfo = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description Send the invitation to the same user or any other user
+ * @routes (POST /reinvite-opponent)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.reinviteOpponent = async (req, res) => {
   try {
     const { email, competitionId, invitee_name, match_type } = req.body;
