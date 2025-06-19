@@ -114,6 +114,15 @@ exports.determineWinners = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description Finalize the winner and give the prize
+ * @routes (GET /determine-winners)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.determineWinnersV2 = async (req, res) => {
   try {
     const response = await determineWinnersFunction();

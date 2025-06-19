@@ -751,6 +751,15 @@ exports.getNewAndRepeatVotersPerWeek = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description get the new and repeat competitor per week from the DB storage
+ * @routes (GET /competitor/new-vs-repeat)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.getNewAndRepeatCompetitorPerWeek = async (req, res) => {
   try {
     const today = moment();
@@ -788,6 +797,15 @@ exports.getNewAndRepeatCompetitorPerWeek = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description get the report count rate per week
+ * @routes (GET /report/report-rate)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.getReportCountRatePerWeek = async (req, res) => {
   try {
     const today = moment();

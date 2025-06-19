@@ -2,6 +2,10 @@ const { sequelize, WeeklyReportStats, Report } = require('../models');
 const { Sequelize } = require('sequelize');
 const moment = require('moment');
 
+/**
+ * Record the last week reports stats
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.recordWeeklyReportStats = async () => {
   // Get current date
   const today = moment();

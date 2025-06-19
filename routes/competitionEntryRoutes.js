@@ -4,6 +4,7 @@ const CompetitionEntryController = require('../controllers/competitionEntryContr
 
 const AWS = require('aws-sdk');
 const isUserMiddleware = require('../middleware/isUserMiddleware');
+const isAdminOrUserMiddleware = require('../middleware/isAdminOrUserMiddleware');
 require('dotenv').config();
 
 // ✅ Initialize AWS SDK
@@ -21,6 +22,11 @@ router.get(
   '/get-upload-url',
   isUserMiddleware,
   CompetitionEntryController.getUploadURL
+);
+router.post(
+  '/delete-image-url',
+  isAdminOrUserMiddleware,
+  CompetitionEntryController.deleteImageS3URL
 );
 
 router.post(
@@ -82,6 +88,13 @@ router.post(
   '/send-invite',
   isUserMiddleware,
   CompetitionEntryController.emailInviteLink
+);
+
+// ✅ Send Invite Email
+router.get(
+  '/get-competition',
+  isUserMiddleware,
+  CompetitionEntryController.getCompetitionById
 );
 
 module.exports = router;

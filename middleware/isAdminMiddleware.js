@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
+/**
+ * API validation for the Super Admin
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const isAdminMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;

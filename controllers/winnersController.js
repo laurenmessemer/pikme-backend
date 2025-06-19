@@ -89,6 +89,15 @@ const getWinners = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description Get the Winner Listing with the theme and contest Id
+ * @routes (GET /)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const getWinnersV2 = async (req, res) => {
   try {
     const { limit = 10, skip = 0 } = req.query;

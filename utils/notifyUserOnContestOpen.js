@@ -1,6 +1,10 @@
 const { User } = require('../models');
 const addAlerts = require('./addAlerts');
 
+/**
+ * Notify the all the user's on Contest got Live
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 async function notifyUserOnContestOpen(data) {
   try {
     const findUsers = await User.findAll();

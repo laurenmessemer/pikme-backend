@@ -5,6 +5,10 @@ const { v1: uuidv1 } = require('uuid');
 
 const dirName = 'public/temp';
 
+/**
+ * Handle the File uplaod with the multer
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const handleFileMulter = (req, res, next) => {
   try {
     // Make directory if it does not exist

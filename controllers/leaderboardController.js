@@ -1,4 +1,4 @@
-const { Competition, Contest, Theme, User } = require('../models');
+const { Competition, Contest, Theme, User, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
 const sendInviteEmail = require('../utils/sendInviteEmail');
@@ -11,55 +11,40 @@ exports.getUserSubmissions = async (req, res) => {
       return res.json({ success: true, submissions: [] });
     }
 
-    // ✅ Fetch competitions where the user is user1 or user2
-    const competitions = await Competition.findAll({
-      where: {
-        [Op.or]: [{ user1_id: userId }, { user2_id: userId }],
-      },
-      include: [
-        {
-          model: Contest,
-          attributes: ['status'],
-          include: [
-            {
-              model: Theme,
-              as: 'Theme',
-              attributes: ['name'],
-            },
-          ],
-        },
-        {
-          model: User,
-          as: 'User1',
-          attributes: ['id', 'username'],
-        },
-        {
-          model: User,
-          as: 'User2',
-          attributes: ['id', 'username'],
-        },
-      ],
-      order: [['createdAt', 'DESC']],
+    const queryString = `
+    SELECT
+      C."id" AS "competition_id",
+      CASE
+        WHEN C."user1_id" = ${userId} THEN C."user1_image"
+        ELSE C."user2_image"
+      END AS "image",
+      CASE
+        WHEN C."user1_id" = ${userId} THEN COALESCE(U1."username", 'Me')
+        ELSE COALESCE(U2."username", 'Me')
+      END AS "username",
+      COALESCE(T."name", 'Unknown Theme') AS "theme",
+      CT."status" AS "contest_status",
+      'N/A' AS "position",
+      '0' AS "payout",
+      COALESCE(A."id", null) as "violation_action_id"
+    FROM
+      "Competitions" C
+      LEFT JOIN "Contests" CT ON CT."id" = C."contest_id"
+      LEFT JOIN "Themes" T ON T."id" = CT."theme_id"
+      LEFT JOIN "Users" U1 ON U1."id" = C."user1_id"
+      LEFT JOIN "Users" U2 ON U2."id" = C."user2_id"
+      LEFT JOIN "ActionAfterReports" A ON A."competition_id" = C."id" AND A."reported_user_id" = ${userId} AND A."status" = 'User Action Pending' AND A."mail_send_time" > NOW() - interval '24 hours'
+    WHERE
+      C."user1_id" = ${userId}
+      OR C."user2_id" = ${userId}
+    ORDER BY
+      C."createdAt" DESC;
+  `;
+
+    const result = await sequelize.query(queryString, {
+      type: sequelize.QueryTypes.SELECT,
     });
-
-    // ✅ Format response
-    const formattedSubmissions = competitions.map((comp) => ({
-      id: comp.id,
-      image:
-        comp.user1_id === parseInt(userId)
-          ? comp.user1_image
-          : comp.user2_image,
-      username:
-        comp.user1_id === parseInt(userId)
-          ? comp.User1?.username || 'Me'
-          : comp.User2?.username || 'Me',
-      theme: comp.Contest?.Theme?.name || 'Unknown Theme', // ✅ Fetch theme name correctly
-      contestStatus: comp.Contest.status, // ✅ Fetch contest status from Contest
-      position: 'N/A', // ✅ Update if needed
-      payout: '0', // ✅ Update if payouts are tracked
-    }));
-
-    return res.json({ success: true, submissions: formattedSubmissions });
+    return res.json({ success: true, submissions: result });
   } catch (error) {
     console.error('Error fetching user submissions:', error);
     res.status(500).json({ error: 'Server error while fetching submissions.' });
@@ -398,6 +383,15 @@ exports.getOpponentInfo = async (req, res) => {
   }
 };
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ * @description Send the invitation to the same user or any other user
+ * @routes (POST /reinvite-opponent)
+ * @returns HTTP Response
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.reinviteOpponent = async (req, res) => {
   try {
     const { email, competitionId, invitee_name, match_type } = req.body;

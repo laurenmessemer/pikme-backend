@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
+/**
+ * API validation for the User
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 const isUserMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;

@@ -4,6 +4,7 @@ const router = express.Router();
 const reportController = require('../controllers/reportController');
 const isUserMiddleware = require('../middleware/isUserMiddleware');
 const isAdminMiddleware = require('../middleware/isAdminMiddleware');
+const isAdminOrUserMiddleware = require('../middleware/isAdminOrUserMiddleware');
 
 router.post('/submit', isUserMiddleware, reportController.submitReport);
 router.get('/get-reports', isAdminMiddleware, reportController.getReports);
@@ -38,4 +39,17 @@ router.post(
   reportController.actionOnReportedUser
 );
 
+// ✅ update violated images
+router.post(
+  '/update-image',
+  isAdminOrUserMiddleware,
+  reportController.updateViolationImages
+);
+
+// ✅ update violated images
+router.post(
+  '/update-violation-image-status',
+  isAdminOrUserMiddleware,
+  reportController.updateViolationImagesStaus
+);
 module.exports = router;

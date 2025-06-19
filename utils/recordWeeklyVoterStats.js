@@ -2,6 +2,11 @@ const { Vote, WeeklyVoterStats } = require('../models');
 const { Sequelize } = require('sequelize');
 const moment = require('moment');
 const { User } = require('../models');
+
+/**
+ * Record the last week votes stats
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.recordWeeklyVoterStats = async () => {
   // Get current date
   const today = moment();

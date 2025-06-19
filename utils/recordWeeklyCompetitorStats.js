@@ -2,6 +2,10 @@ const { Competition, sequelize, WeeklyCompetitorStats } = require('../models');
 const { Sequelize } = require('sequelize');
 const moment = require('moment');
 
+/**
+ * Record the last week competitor stats
+ * @author Dhrumil Amrutiya (Zignuts)
+ */
 exports.recordWeeklyCompetitorStats = async () => {
   // Get current date
   const today = moment();
