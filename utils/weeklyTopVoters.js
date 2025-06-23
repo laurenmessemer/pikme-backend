@@ -15,7 +15,8 @@ const voterReword = {
  */
 async function weeklyTopVoters() {
   try {
-    const weekStart = moment()
+    const weekStart = moment
+      .tz('America/New_York')
       .startOf('isoWeek')
       .set({ hour: 0, minute: 0, second: 1, millisecond: 0 });
 

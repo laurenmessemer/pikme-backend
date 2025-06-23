@@ -4,6 +4,7 @@ const notifyUserOnContestOpen = require('../utils/notifyUserOnContestOpen');
 const jsonexport = require('jsonexport');
 const fs = require('fs');
 const fakeUserParticipants = require('../utils/fakeUserParticipants');
+const moment = require('moment');
 
 // ✅ Fetch all contests
 const getAllContests = async (req, res) => {
@@ -100,7 +101,7 @@ const uploadFakeParticipants = async (req, res) => {
           [Op.or]: ['Live'],
         },
         submission_deadline: {
-          [Op.gt]: new Date(),
+          [Op.gt]: moment.tz('America/New_York').toDate(),
         },
       },
       include: [
@@ -180,7 +181,7 @@ const getLiveAndUpcomingContests = async (req, res) => {
           [Op.or]: ['Live', 'Upcoming'],
         },
         submission_deadline: {
-          [Op.gt]: new Date(),
+          [Op.gt]: moment.tz('America/New_York').toDate(),
         },
       },
       include: [
@@ -232,10 +233,10 @@ const getLiveContests = async (req, res) => {
       where: {
         status: 'Live',
         voting_deadline: {
-          [Op.gt]: new Date(),
+          [Op.gt]: moment.tz('America/New_York').toDate(),
         },
         voting_live_date: {
-          [Op.lt]: new Date(),
+          [Op.lt]: moment.tz('America/New_York').toDate(),
         },
       },
       include: [

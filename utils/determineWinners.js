@@ -9,6 +9,7 @@ const {
   sequelize,
 } = require('../models');
 const addAlerts = require('./addAlerts');
+const moment = require('moment');
 
 /**
  * Determine the winner based on the voted add the winning amount in the wallet
@@ -24,7 +25,7 @@ const determineWinnersFunction = async () => {
           attributes: ['id', 'entry_fee', 'voting_deadline'],
           where: {
             voting_deadline: {
-              [Op.lte]: new Date(),
+              [Op.lte]: moment.tz('America/New_York').toDate(),
             },
           },
         },

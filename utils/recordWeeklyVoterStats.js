@@ -9,7 +9,7 @@ const { User } = require('../models');
  */
 exports.recordWeeklyVoterStats = async () => {
   // Get current date
-  const today = moment();
+  const today = moment.tz('America/New_York');
 
   // Get the previous week's Monday 00:00:00
   const lastWeekStart = today
