@@ -1,6 +1,6 @@
 const { Competition, Contest, Theme, Vote } = require('../models');
 const { Op, Sequelize } = require('sequelize');
-
+const moment = require('moment');
 // ✅ Fetch active competitions where both images exist
 exports.getVotingEntries = async (req, res) => {
   try {
@@ -29,10 +29,10 @@ exports.getVotingEntries = async (req, res) => {
           where: {
             status: 'Live',
             voting_deadline: {
-              [Op.gt]: new Date(),
+              [Op.gt]: moment.tz('America/New_York').toDate(),
             },
             voting_live_date: {
-              [Op.lt]: new Date(),
+              [Op.lt]: moment.tz('America/New_York').toDate(),
             },
           },
           include: [{ model: Theme, as: 'Theme' }],

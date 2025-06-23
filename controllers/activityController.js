@@ -1,12 +1,18 @@
 const { Op } = require('sequelize');
 const { User, Competition } = require('../models');
-
+const moment = require('moment');
 exports.getTopVoters = async (req, res) => {
   try {
     const { userId } = req.query;
 
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Sunday
+    // Get current time in New York timezone
+    const now = moment.tz('America/New_York');
+
+    // Get Sunday 00:00:00 of the current week in New York time
+    const startOfWeek = now.clone().day(0).startOf('day').toDate();
+
+    // const startOfWeek = new Date();
+    // startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Sunday
 
     // Step 1: Fetch all competitions where user1 or user2 cast votes after startOfWeek
     const competitions = await Competition.findAll({
@@ -62,8 +68,14 @@ exports.getTopReferrers = async (req, res) => {
   try {
     const { userId } = req.query;
 
-    const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Sunday
+    // Get current time in New York timezone
+    const now = moment.tz('America/New_York');
+
+    // Get Sunday 00:00:00 of the current week in New York time
+    const startOfWeek = now.clone().day(0).startOf('day').toDate();
+
+    // const startOfWeek = new Date();
+    // startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Sunday
 
     // Step 1: Get users created this week that have referred_by_id
     const referrals = await User.findAll({

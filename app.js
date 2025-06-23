@@ -3,8 +3,9 @@ const express = require('express');
 const sequelize = require('./config/db');
 const path = require('path');
 const fileUpload = require('express-fileupload');
-const moment = require('moment');
 require('./models');
+const { CronJob } = require('cron');
+const moment = require('moment');
 
 // ✅ Add cron + controller
 const cron = require('node-cron');
@@ -155,30 +156,64 @@ app.use((err, req, res, next) => {
 });
 
 // ✅ Cron Job: Save Weekly Voter Stats Every Monday 12:05 AM
-cron.schedule('5 0 * * 1', async () => {
-  console.log('📊 Running weekly voter stats cron...');
-  try {
-    await recordWeeklyVoterStats();
-    await recordWeeklyCompetitorStats();
-    await recordWeeklyReportStats();
-    await determineWinnersFunction();
-    console.log('✅ Weekly voter stats recorded.');
-  } catch (err) {
-    console.error('❌ Failed to record weekly voter stats:', err.message);
-  }
+const cronJob1 = CronJob.from({
+  cronTime: '5 0 * * 1',
+  onTick: async function () {
+    try {
+      console.log('📊 Running weekly voter stats cron...');
+      await recordWeeklyVoterStats();
+      await recordWeeklyCompetitorStats();
+      await recordWeeklyReportStats();
+      await determineWinnersFunction();
+    } catch (error) {
+      console.error('❌ Failed to record weekly voter stats:', err.message);
+    }
+  },
+  start: true,
+  timeZone: 'America/New_York',
 });
 
 // ✅ Cron Job: Weekly Voter and Referrers Every Sunday 23:55 PM
-cron.schedule('55 23 * * 0', async () => {
-  console.log('Weekly Top Voters and Referrers Winners');
-  try {
-    await weeklyTopVoters();
-    await weeklyTopReferrers();
-    console.log('✅ Weekly Top Voters and Referrers Winners');
-  } catch (err) {
-    console.error('❌ Failed to record weekly voter stats:', err.message);
-  }
+const cronJob2 = CronJob.from({
+  cronTime: '55 23 * * 0',
+  onTick: async function () {
+    try {
+      console.log('📊 Running weekly voter stats cron...');
+      await weeklyTopVoters();
+      await weeklyTopReferrers();
+    } catch (error) {
+      console.error('❌ Failed to record weekly voter stats:', err.message);
+    }
+  },
+  start: true,
+  timeZone: 'America/New_York',
 });
+
+// // ✅ Cron Job: Save Weekly Voter Stats Every Monday 12:05 AM
+// cron.schedule('5 0 * * 1', async () => {
+//   console.log('📊 Running weekly voter stats cron...');
+//   try {
+//     await recordWeeklyVoterStats();
+//     await recordWeeklyCompetitorStats();
+//     await recordWeeklyReportStats();
+//     await determineWinnersFunction();
+//     console.log('✅ Weekly voter stats recorded.');
+//   } catch (err) {
+//     console.error('❌ Failed to record weekly voter stats:', err.message);
+//   }
+// });
+
+// // ✅ Cron Job: Weekly Voter and Referrers Every Sunday 23:55 PM
+// cron.schedule('55 23 * * 0', async () => {
+//   console.log('Weekly Top Voters and Referrers Winners');
+//   try {
+//     await weeklyTopVoters();
+//     await weeklyTopReferrers();
+//     console.log('✅ Weekly Top Voters and Referrers Winners');
+//   } catch (err) {
+//     console.error('❌ Failed to record weekly voter stats:', err.message);
+//   }
+// });
 
 // ✅ Sync Database and Start Server
 sequelize
