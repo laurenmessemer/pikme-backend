@@ -128,8 +128,6 @@ exports.getTopVotersV2 = async (req, res) => {
       { id: 157, username: 'harper317', count: 9, isUploaded: true },
     ];
 
-    const randomTen = getRandomTen(users);
-
     const topVoters = topVotersList.map((entry) => ({
       id: entry.voter_id,
       username: entry.User.username || 'Unknown',
@@ -137,26 +135,41 @@ exports.getTopVotersV2 = async (req, res) => {
       isUploaded: entry.User.is_uploaded,
     }));
 
+    let randomTen = [];
+
+    if (topVoters.length < 10) {
+      randomTen = getRandomTen(users, 10 - Number(topVoters.length));
+    }
+
+    // const randomTen = getRandomTen(users);
+
     // Step 3: Combine both arrays
     const combinedList = [...randomTen, ...topVoters];
 
     // Step 4: Sort by `count` descending
-    const sortedByCount = combinedList.sort((a, b) => b.count - a.count);
+    const sortedByCount = combinedList.sort((a, b) => {
+      // Prioritize isUploaded = true
+      if (a.isUploaded !== b.isUploaded) {
+        return a.isUploaded - b.isUploaded; // false first
+      }
+
+      // If both have same isUploaded, sort by count descending
+      return b.count - a.count;
+    });
 
     // Step 5: Pick top 10
     const top10Combined = sortedByCount.slice(0, 10);
 
+    const sorted = top10Combined.sort((a, b) => b.count - a.count);
     // Find "me" stats
-    const me = top10Combined.find(
-      (user) => String(user.id) === String(userId)
-    ) || {
+    const me = sorted.find((user) => String(user.id) === String(userId)) || {
       username: 'Me',
       count: 0,
     };
 
     return res.status(200).json({
       me,
-      topVoters: top10Combined,
+      topVoters: sorted,
     });
   } catch (err) {
     console.error('Error fetching top voters:', err.message);
@@ -208,48 +221,60 @@ exports.getTopReferrers = async (req, res) => {
       })
     );
 
-    function getRandomTen(data) {
+    function getRandomTen(data, number) {
       // Shuffle the array
       const shuffled = data.sort(() => 0.5 - Math.random());
       // Return first 10 elements
-      return shuffled.slice(0, 10);
+      return shuffled.slice(0, number);
     }
 
     // Static data
     const users = [
-      { id: 134, username: 'nova_dreamer', count: 2, isUploaded: true },
+      { id: 134, username: 'nova_dreamer', count: 1, isUploaded: true },
       { id: 135, username: 'echo_blaze', count: 1, isUploaded: true },
-      { id: 136, username: 'skyline_zara', count: 2, isUploaded: true },
+      { id: 136, username: 'skyline_zara', count: 1, isUploaded: true },
       { id: 137, username: 'crimson_dash', count: 1, isUploaded: true },
       { id: 138, username: 'pixel_ace', count: 1, isUploaded: true },
-      { id: 139, username: 'luna_glow', count: 2, isUploaded: true },
-      { id: 140, username: 'cyber_milo', count: 2, isUploaded: true },
+      { id: 139, username: 'luna_glow', count: 1, isUploaded: true },
+      { id: 140, username: 'cyber_milo', count: 1, isUploaded: true },
       { id: 141, username: 'frostbyte7', count: 1, isUploaded: true },
-      { id: 142, username: 'twilight_echo', count: 1, isUploaded: true },
-      { id: 143, username: 'neon_raze', count: 3, isUploaded: true },
-      { id: 144, username: 'blaze_quinn', count: 2, isUploaded: true },
+      { id: 141, username: 'twilight_echo', count: 1, isUploaded: true },
+      { id: 143, username: 'neon_raze', count: 1, isUploaded: true },
+      { id: 144, username: 'blaze_quinn', count: 1, isUploaded: true },
       { id: 145, username: 'stella_rush', count: 1, isUploaded: true },
-      { id: 146, username: 'vortex_ryder', count: 2, isUploaded: true },
-      { id: 147, username: 'ivy_circuit', count: 2, isUploaded: true },
+      { id: 146, username: 'vortex_ryder', count: 1, isUploaded: true },
+      { id: 147, username: 'ivy_circuit', count: 1, isUploaded: true },
       { id: 148, username: 'ember_sage', count: 1, isUploaded: true },
       { id: 149, username: 'cosmo_nyx', count: 1, isUploaded: true },
       { id: 150, username: 'astro_knox', count: 1, isUploaded: true },
       { id: 151, username: 'zephyr_lux', count: 1, isUploaded: true },
-      { id: 152, username: 'onyx_jett', count: 1, isUploaded: true },
-      { id: 153, username: 'nova_ray', count: 2, isUploaded: true },
-      { id: 154, username: 'vega_muse', count: 2, isUploaded: true },
+      { id: 151, username: 'onyx_jett', count: 1, isUploaded: true },
+      { id: 153, username: 'nova_ray', count: 1, isUploaded: true },
+      { id: 154, username: 'vega_muse', count: 1, isUploaded: true },
       { id: 155, username: 'flare_zen', count: 1, isUploaded: true },
-      { id: 156, username: 'orbit_kai', count: 2, isUploaded: true },
-      { id: 157, username: 'eclipse_zed', count: 2, isUploaded: true },
+      { id: 156, username: 'orbit_kai', count: 1, isUploaded: true },
+      { id: 157, username: 'eclipse_zed', count: 1, isUploaded: true },
     ];
 
-    const randomTen = getRandomTen(users);
+    let randomTen = [];
+
+    if (referralArray.length < 10) {
+      randomTen = getRandomTen(users, 10 - Number(referralArray.length));
+    }
 
     // Step 3: Combine both arrays
     const combinedList = [...randomTen, ...referralArray];
 
     // Step 4: Sort by `count` descending
-    const sortedByCount = combinedList.sort((a, b) => b.count - a.count);
+    const sortedByCount = combinedList.sort((a, b) => {
+      // Prioritize isUploaded = true
+      if (a.isUploaded !== b.isUploaded) {
+        return a.isUploaded - b.isUploaded; // false first
+      }
+
+      // If both have same isUploaded, sort by count descending
+      return b.count - a.count;
+    });
 
     // Step 5: Pick top 10
     const top10Combined = sortedByCount.slice(0, 10);
