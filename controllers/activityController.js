@@ -1,5 +1,5 @@
-const { Op } = require('sequelize');
-const { User, Competition } = require('../models');
+const { Op, fn, col } = require('sequelize');
+const { User, Competition, Vote } = require('../models');
 const moment = require('moment');
 exports.getTopVoters = async (req, res) => {
   try {
@@ -60,6 +60,58 @@ exports.getTopVoters = async (req, res) => {
     });
   } catch (err) {
     console.error('❌ Error fetching top voters:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+exports.getTopVotersV2 = async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    // Get Sunday 00:00:00 of the current week in New York time
+    const startOfWeek = moment
+      .tz('America/New_York')
+      .day(0)
+      .startOf('day')
+      .toDate();
+
+    const topVotersList = await Vote.findAll({
+      where: {
+        createdAt: { [Op.gte]: startOfWeek },
+        voter_id: { [Op.ne]: null },
+      },
+      attributes: ['voter_id', [fn('COUNT', col('voter_id')), 'voteCount']],
+      group: ['voter_id', 'User.id'],
+      order: [[fn('COUNT', col('voter_id')), 'DESC']],
+      limit: 10,
+      include: [
+        {
+          model: User,
+          attributes: ['id', 'username', 'is_uploaded'],
+          required: true,
+        },
+      ],
+    });
+
+    const topVoters = topVotersList.map((entry) => ({
+      id: entry.voter_id,
+      username: entry.User.username || 'Unknown',
+      count: parseInt(entry.get('voteCount'), 10),
+      isUploaded: entry.User.is_uploaded,
+    }));
+
+    // Find "me" stats
+    const me = topVoters.find((user) => String(user.id) === String(userId)) || {
+      username: 'Me',
+      count: 0,
+    };
+
+    return res.status(200).json({
+      me,
+      topVoters: topVoters,
+    });
+  } catch (err) {
+    console.error('Error fetching top voters:', err.message);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
