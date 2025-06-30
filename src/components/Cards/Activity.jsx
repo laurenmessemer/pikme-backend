@@ -12,7 +12,6 @@ const tokenImg = "https://d38a0fe14bafg9.cloudfront.net/icons/token.svg";
 const pointerIcon = "https://d38a0fe14bafg9.cloudfront.net/icons/pointer.svg";
 const fileIcon = `${ImageUrl}/icons/file.svg`;
 
-
 const Activity = () => {
   const { user: authUser, token } = useAuth();
   const [voters, setVoters] = useState([]);
@@ -92,21 +91,19 @@ const Activity = () => {
       if (voter.isUploaded === true) {
         return {
           ...voter,
-          count: Math.floor(Math.random() * 13) + 1 // Random number between 1-13
+          count: Math.floor(Math.random() * 13) + 1, // Random number between 1-13
         };
       }
       return voter;
     });
 
     // Separate non-uploaded and uploaded users
-    const nonUploaded = processedVoters.filter(v => !v.isUploaded).sort((a, b) => b.count - a.count);
-    const uploaded = processedVoters.filter(v => v.isUploaded).sort((a, b) => b.count - a.count);
+    processedVoters.sort((a, b) => b.count - a.count);
 
     // Return non-uploaded first, then uploaded
-    return [...nonUploaded, ...uploaded];
+    return [...processedVoters];
   }, [voters]);
 
-  
   // const mergedVoters = useMemo(() => {
   // // Only include real voters: isUploaded must not be true
   // const realVoters = [...voters]
@@ -123,20 +120,19 @@ const Activity = () => {
         return {
           ...referrer,
           // count: Math.floor(Math.random() * 3) + 1 // Random number between 1-3
-          count: 1 // Random number between 1-3
+          count: 1, // Random number between 1-3
         };
       }
       return referrer;
     });
 
     // Separate non-uploaded and uploaded users
-    const nonUploaded = processedReferrers.filter(r => !r.isUploaded).sort((a, b) => b.count - a.count);
-    const uploaded = processedReferrers.filter(r => r.isUploaded).sort((a, b) => b.count - a.count);
+    processedReferrers.sort((a, b) => b.count - a.count);
 
     // Return non-uploaded first, then uploaded
-    return [...nonUploaded, ...uploaded];
+    return [...processedReferrers];
   }, [referrers]);
-  
+
   const renderToken = () => (
     <img
       src={tokenImg}
