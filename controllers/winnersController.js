@@ -141,9 +141,6 @@ const getWinnersV2 = async (req, res) => {
       JOIN "Themes" T ON T."id" = C."theme_id"
       JOIN "Competitions" CT ON CT."id" = W."competition_id"
       JOIN "Users" U ON U."id" = W."user_id"
-      AND U."suspended" = FALSE
-      AND U."is_verified" = TRUE
-      AND U."role" = 'participant'
     GROUP BY
       C."id",
       T."id",
